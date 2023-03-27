@@ -10,6 +10,23 @@ npm i --save-dev cs-helper
 
 ## Usage
 
+### CLI usage
+
+Add `cs-helper` as package.json script to build you code into bundle
+
+```json
+{
+  "name": "package-name",
+  "version": "1.0.0",
+  "description": "Package description",
+  "scripts": {
+    "build": "cs-helper <path-to-index.js>"
+  }
+}
+```
+
+Run command to build your code `npm run build`
+
 ### Basic usage
 
 ```javascript

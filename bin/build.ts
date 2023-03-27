@@ -45,7 +45,7 @@ async function main() {
     plugins: [
       new webpack.BannerPlugin({
         banner: function () {
-          const { repository, name } = packageFile;
+          const { repository, name, version } = packageFile;
 
           let readme!: string;
 
@@ -77,6 +77,7 @@ Please, go to code sources and add your changes!
 
 Code sources:
   Package name: ${name}
+  Package version: ${version}
   Package repository: ${repository ? repository : 'Not defined'}
   Build command: npm run ${process.env.npm_lifecycle_event}
   
