@@ -1,0 +1,35 @@
+{
+  "name": "cs-helper",
+  "version": "1.0.0",
+  "description": "Helper for Custom Scripts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "npm run build:sources && npm run build:bin",
+    "build:sources": "tsc",
+    "build:bin": "tsc --project tsconfig.bin.json",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "cs-helper": "dist/bin/build.js"
+  },
+  "files": [
+    "dist/",
+    "README.md"
+  ],
+  "repository": "https://github.com/mi-examples/cs-helper",
+  "keywords": [],
+  "author": "Serhii Shpak",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/jquery": "^3.5.16",
+    "@types/webpack": "^5.28.0",
+    "prettier": "^2.8.6"
+  },
+  "dependencies": {
+    "chalk": "^5.2.0",
+    "ts-loader": "^9.4.2",
+    "typescript": "^5.0.2",
+    "webpack": "^5.76.2"
+  }
+}
