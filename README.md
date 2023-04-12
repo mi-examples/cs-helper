@@ -5,7 +5,7 @@ Metric Insights Custom Script helper
 ## Install
 
 ```shell
-npm i --save-dev cs-helper
+npm i --save-dev @metricinsights/cs-helper
 ```
 
 ## Usage
@@ -20,7 +20,7 @@ Add `cs-helper` as package.json script to build you code into bundle
   "version": "1.0.0",
   "description": "Package description",
   "scripts": {
-    "build": "cs-helper <path-to-index.js>"
+    "build": "@metricinsights/cs-helper <path-to-index.js>"
   }
 }
 ```
@@ -30,7 +30,7 @@ Run command to build your code `npm run build`
 ### Basic usage
 
 ```javascript
-import { cs, parseParams } from 'cs-helper';
+import { cs, parseParams } from '@metricinsights/cs-helper';
 
 const parsedParams = parseParams({ defaultValue: 1 }); // { defaultValue: 1 } & cs.params
 
@@ -46,12 +46,12 @@ setTimeout(() => {
 Contains methods to apply metadata for MI datasets
 
 ```javascript
-import { cs } from 'cs-helper';
+import { cs } from '@metricinsights/cs-helper';
 import {
   buildMetadataTransformer,
   applyMetadata,
   transformDataset,
-} from 'cs-helper/dist/utils';
+} from '@metricinsights/cs-helper/dist/utils';
 
 async function main() {
   const dataset = await new Promise((resolve, reject) => {

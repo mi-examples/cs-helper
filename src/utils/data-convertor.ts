@@ -39,7 +39,7 @@ export function applyMetadata(
   return (data as Array<any>).map((item) => {
     for (const key in item) {
       if (
-        Object.hasOwn(item, key) &&
+        typeof item[key] !== "undefined" &&
         typeof metadataTransformer[key] === 'function'
       ) {
         item[key] = metadataTransformer[key](item[key]);

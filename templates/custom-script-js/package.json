@@ -1,0 +1,20 @@
+{
+  "name": "%PACKAGE_NAME%",
+  "version": "%PACKAGE_VERSION%",
+  "description": "%PACKAGE_DESCRIPTION%",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "cs-helper src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "prettier": "^2.8.6"
+  },
+  "dependencies": {
+    "@metricinsights/cs-helper": "^0.1.0"
+  }
+}
