@@ -35,7 +35,7 @@ function replaceTemplateVar(
     .replace(getVarRegExp(name), value);
 }
 
-async function main() {
+(async function() {
   const { program, Option, Argument } = await import('commander');
   const prompts = (
     (await import('prompts')) as never as { default: typeof import('prompts') }
@@ -227,6 +227,4 @@ async function main() {
     });
 
   cli.parse();
-}
-
-main();
+})();

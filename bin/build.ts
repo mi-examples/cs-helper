@@ -6,7 +6,7 @@ const { rmSync, readFileSync, readdirSync } = require('fs');
 type Webpack = typeof import('webpack');
 type Stats = import('webpack').Stats;
 
-async function main() {
+(async function() {
   const { default: webpack } = (await import('webpack')) as unknown as {
     default: Webpack;
   };
@@ -125,6 +125,4 @@ ${readme ? `\n***** README.md *****\n\n${readme}\n***** --------- *****` : ''}`;
   });
 
   console.log(chalk.green('Done'));
-}
-
-main();
+})()
