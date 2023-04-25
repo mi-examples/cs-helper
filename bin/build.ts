@@ -104,13 +104,35 @@ ${readme ? `\n***** README.md *****\n\n${readme}\n***** --------- *****` : ''}`;
       rules: [
         {
           test: /\.tsx?$/,
-          use: 'ts-loader',
           exclude: /node_modules/,
+          use: {
+            loader: 'babel-loader',
+            options: {
+              presets: [
+                ['@babel/preset-env', { targets: 'ie 11' }],
+                '@babel/preset-typescript',
+              ],
+            },
+          },
+        },
+        {
+          test: /\.[mc]?js?$/,
+          exclude: {
+            not: [/node_modules/],
+          },
+          use: {
+            loader: 'babel-loader',
+            options: {
+              presets: [
+                ['@babel/preset-env', { targets: 'ie 11' }],
+              ],
+            },
+          },
         },
       ],
     },
     resolve: {
-      extensions: ['.tsx', '.ts', '.js'],
+      extensions: ['.tsx', '.ts', '.js', '.mjs', '.cjs'],
     },
   });
 
