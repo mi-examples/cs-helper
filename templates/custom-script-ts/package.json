@@ -16,6 +16,6 @@
     "typescript": "^5.0.2"
   },
   "dependencies": {
-    "@metricinsights/cs-helper": "^0.1.0"
+    "@metricinsights/cs-helper": "^0.1.3"
   }
 }
