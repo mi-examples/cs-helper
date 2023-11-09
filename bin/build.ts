@@ -6,7 +6,7 @@ const { rmSync, readFileSync, readdirSync } = require('fs');
 type Webpack = typeof import('webpack');
 type Stats = import('webpack').Stats;
 
-(async function() {
+(async function () {
   const { default: webpack } = (await import('webpack')) as unknown as {
     default: Webpack;
   };
@@ -20,10 +20,12 @@ type Stats = import('webpack').Stats;
 
   const filename = path.resolve('.', process.argv[2]);
 
-  try {
-    rmSync(DIST_DIR, { recursive: true, force: true });
-  } catch {
-    //
+  if (process.argv.includes('--clean')) {
+    try {
+      rmSync(DIST_DIR, { recursive: true, force: true });
+    } catch {
+      //
+    }
   }
 
   const helperPackage = require(path.resolve(
@@ -90,6 +92,7 @@ Code sources:
   Package version: ${version}
   Package repository: ${repository ? repository : 'Not defined'}
   Build command: npm run ${process.env.npm_lifecycle_event}
+  Built at: ${new Date().toISOString()}
   
 ***** ----- ----- ----- ----- ----- ----- *****
 ${readme ? `\n***** README.md *****\n\n${readme}\n***** --------- *****` : ''}`;
@@ -99,7 +102,10 @@ ${readme ? `\n***** README.md *****\n\n${readme}\n***** --------- *****` : ''}`;
     optimization: { minimize: false },
     target: ['web', 'es5'],
     entry: filename,
-    output: { path: DIST_DIR },
+    output: {
+      path: DIST_DIR,
+      filename: `${path.parse(filename).name}.js`,
+    },
     module: {
       rules: [
         {
@@ -123,9 +129,7 @@ ${readme ? `\n***** README.md *****\n\n${readme}\n***** --------- *****` : ''}`;
           use: {
             loader: 'babel-loader',
             options: {
-              presets: [
-                ['@babel/preset-env', { targets: 'ie 11' }],
-              ],
+              presets: [['@babel/preset-env', { targets: 'ie 11' }]],
             },
           },
         },
@@ -147,4 +151,4 @@ ${readme ? `\n***** README.md *****\n\n${readme}\n***** --------- *****` : ''}`;
   });
 
   console.log(chalk.green('Done'));
-})()
+})();

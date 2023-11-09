@@ -12,7 +12,7 @@ npm i --save-dev @metricinsights/cs-helper
 
 ### CLI usage
 
-Add `cs-helper` as package.json script to build you code into bundle
+Add `cs-helper` as package.json script to build you code into a bundle
 
 ```json
 {
@@ -26,6 +26,12 @@ Add `cs-helper` as package.json script to build you code into bundle
 ```
 
 Run command to build your code `npm run build`
+
+#### API options
+
+| Option    | Description                    | Default |
+|-----------|--------------------------------|---------|
+| `--clean` | Clean dist folder before build | `false` |
 
 ### Basic usage
 
