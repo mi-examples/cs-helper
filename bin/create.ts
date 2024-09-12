@@ -229,7 +229,7 @@ function replaceTemplateVar(
         '%PACKAGE_NAME%': packageName,
         '%PACKAGE_VERSION%': version,
         '%PACKAGE_DESCRIPTION%': description,
-        '%V&%': v7 ? ' --v7' : '',
+        '%V7%': v7 ? ' --v7' : '',
       };
 
       const templateDir = path.resolve(templatesDirectory, template);
@@ -256,7 +256,7 @@ function replaceTemplateVar(
         (filename, destination) => {
           const testRegExp = new RegExp(/index.([jt]s)$/, 'i');
 
-          if (destination.endsWith('src') && testRegExp.test(filename)) {
+          if (testRegExp.test(filename)) {
             return filename.replace(testRegExp, `${packageName}.$1`);
           }
 
