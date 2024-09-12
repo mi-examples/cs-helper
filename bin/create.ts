@@ -79,7 +79,7 @@ function replaceTemplateVar(
         const destinationPath = path.resolve(
           destination,
           typeof filenameMiddleware === 'function'
-            ? filenameMiddleware(t.name)
+            ? filenameMiddleware(t.name, destination)
             : t.name,
         );
 
