@@ -29,9 +29,10 @@ Run command to build your code `npm run build`
 
 #### API options
 
-| Option    | Description                    | Default |
-|-----------|--------------------------------|---------|
-| `--clean` | Clean dist folder before build | `false` |
+| Option    | Description                        | Default |
+|-----------|------------------------------------|---------|
+| `--clean` | Clean dist folder before build     | `false` |
+| `--v7`    | CS will be compatible only with v7 | `false` |
 
 ### Basic usage
 
@@ -78,7 +79,7 @@ async function main() {
   cs.log(JSON.stringify(metadataTransformer));
   cs.log(JSON.stringify(transformedData));
   cs.log(JSON.stringify(transformedResponse));
-  
+
   cs.close();
 }
 

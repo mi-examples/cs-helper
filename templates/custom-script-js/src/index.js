@@ -8,9 +8,9 @@ const params = parseParams({
 });
 
 async function main() {
-  cs.result = `Hello, ${params.param1}! ${
+  cs.result(`Hello, ${params.param1}! ${
     params.param2 ? `Your second parameter is ${params.param2}` : ''
-  }`;
+  }`);
 }
 
 main().catch(function (e) {
