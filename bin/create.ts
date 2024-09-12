@@ -35,7 +35,7 @@ function replaceTemplateVar(
     .replace(getVarRegExp(name), value);
 }
 
-(async function() {
+(async function () {
   const { program, Option, Argument } = await import('commander');
   const prompts = (
     (await import('prompts')) as never as { default: typeof import('prompts') }
@@ -116,6 +116,12 @@ function replaceTemplateVar(
       new Option('-d, --description <description>', 'Package description'),
     )
     .addOption(new Option('-v, --version <version>', 'Package version'))
+    .addOption(
+      new Option(
+        '--v7, --version-7',
+        'Create custom script for MI v7 (not compatible with v6)',
+      ),
+    )
     .addArgument(
       new Argument('[destination]', 'Custom script folder destination').default(
         '.',
@@ -130,6 +136,7 @@ function replaceTemplateVar(
         name?: string;
         description?: string;
         version?: string;
+        v7?: boolean;
       };
 
       const destinationFolder = path.resolve(process.cwd(), destination);
@@ -158,7 +165,7 @@ function replaceTemplateVar(
 
       const packageName =
         opts.name ||
-        (
+        ((
           await prompts(
             {
               name: 'value',
@@ -168,11 +175,11 @@ function replaceTemplateVar(
             },
             { onCancel },
           )
-        ).value as string;
+        ).value as string);
 
       const description =
         opts.description ||
-        (
+        ((
           await prompts(
             {
               name: 'value',
@@ -182,11 +189,11 @@ function replaceTemplateVar(
             },
             { onCancel },
           )
-        ).value as string;
+        ).value as string);
 
       const version =
         opts.version ||
-        (
+        ((
           await prompts(
             {
               name: 'value',
@@ -196,12 +203,27 @@ function replaceTemplateVar(
             },
             { onCancel },
           )
-        ).value as string;
+        ).value as string);
+
+      const v7 =
+        opts.v7 ||
+        ((
+          await prompts(
+            {
+              name: 'value',
+              type: 'confirm',
+              message: `Do you want to create a custom script for MI v7 (not compatible with v6)?`,
+              initial: false,
+            },
+            { onCancel },
+          )
+        ).value as boolean);
 
       const replaceMap = {
         '%PACKAGE_NAME%': packageName,
         '%PACKAGE_VERSION%': version,
         '%PACKAGE_DESCRIPTION%': description,
+        '%V&%': v7 ? ' --v7' : '',
       };
 
       const templateDir = path.resolve(templatesDirectory, template);

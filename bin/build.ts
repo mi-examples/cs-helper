@@ -28,6 +28,8 @@ type Stats = import('webpack').Stats;
     }
   }
 
+  const V7 = process.argv.includes('--v7');
+
   const helperPackage = require(path.resolve(
     __dirname,
     '..',
@@ -93,14 +95,14 @@ Code sources:
   Package repository: ${repository ? repository : 'Not defined'}
   Build command: npm run ${process.env.npm_lifecycle_event}
   Built at: ${new Date().toISOString()}
-  
+  ${V7 ? 'Compatibility: v7 ONLY\n' : ''}
 ***** ----- ----- ----- ----- ----- ----- *****
 ${readme ? `\n***** README.md *****\n\n${readme}\n***** --------- *****` : ''}`;
         },
       }),
     ],
     optimization: { minimize: false },
-    target: ['web', 'es5'],
+    target: ['web', !V7 ? 'es5' : 'es2022'],
     entry: filename,
     output: {
       path: DIST_DIR,

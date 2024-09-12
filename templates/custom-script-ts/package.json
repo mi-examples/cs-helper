@@ -4,7 +4,7 @@
   "description": "%PACKAGE_DESCRIPTION%",
   "main": "dist/index.js",
   "scripts": {
-    "build": "cs-helper src/index.ts",
+    "build": "cs-helper src/index.ts%V7%",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": "",
@@ -12,10 +12,10 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "prettier": "^2.8.6",
+    "prettier": "^3.3.3",
     "typescript": "^5.0.2"
   },
   "dependencies": {
-    "@metricinsights/cs-helper": "^0.1.3"
+    "@metricinsights/cs-helper": "^0.3.0"
   }
 }
