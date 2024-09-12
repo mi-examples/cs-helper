@@ -4,7 +4,7 @@
   "description": "%PACKAGE_DESCRIPTION%",
   "main": "dist/index.js",
   "scripts": {
-    "build": "cs-helper src/index.ts%V7%",
+    "build": "cs-helper src/%PACKAGE_NAME%.ts%V7%",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": "",
