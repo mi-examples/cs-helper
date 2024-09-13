@@ -15,6 +15,6 @@
     "prettier": "^3.3.3"
   },
   "dependencies": {
-    "@metricinsights/cs-helper": "^0.3.0"
+    "@metricinsights/cs-helper": "^%PLUGIN_VERSION%"
   }
 }
