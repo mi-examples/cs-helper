@@ -16,6 +16,6 @@
     "typescript": "^5.0.2"
   },
   "dependencies": {
-    "@metricinsights/cs-helper": "^0.3.0"
+    "@metricinsights/cs-helper": "^%PLUGIN_VERSION%"
   }
 }

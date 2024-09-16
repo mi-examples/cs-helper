@@ -36,9 +36,12 @@ function replaceTemplateVar(
 }
 
 (async function () {
+  // @ts-ignore
   const { program, Option, Argument } = await import('commander');
   const prompts = (
-    (await import('prompts')) as never as { default: typeof import('prompts') }
+    (await import('prompts')) as never as {
+      default: typeof import('prompts');
+    }
   ).default;
   const {
     readdirSync,
@@ -48,7 +51,9 @@ function replaceTemplateVar(
     copyFileSync,
     readFileSync,
   } = await import('fs');
+  // @ts-ignore
   const path = await import('path');
+  // @ts-ignore
   const { isBinaryFileSync } = await import('isbinaryfile');
 
   function copyFilesRecursive(
@@ -74,6 +79,7 @@ function replaceTemplateVar(
           targetFile,
           path.resolve(destination, t.name),
           middleware,
+          filenameMiddleware,
         );
       } else if (t.isFile()) {
         const destinationPath = path.resolve(
@@ -99,6 +105,12 @@ function replaceTemplateVar(
   }
 
   const templatesDirectory = path.resolve(__dirname, '..', '..', 'templates');
+  const pluginPackageJson = JSON.parse(
+    readFileSync(path.resolve(__dirname, '..', '..', 'package.json'), {
+      encoding: 'utf-8',
+      flag: 'r',
+    }),
+  );
 
   const templates = readdirSync(templatesDirectory, {
     encoding: 'utf-8',
@@ -230,6 +242,7 @@ function replaceTemplateVar(
         '%PACKAGE_VERSION%': version,
         '%PACKAGE_DESCRIPTION%': description,
         '%V7%': v7 ? ' --v7' : '',
+        '%PLUGIN_VERSION%': pluginPackageJson.version,
       };
 
       const templateDir = path.resolve(templatesDirectory, template);
@@ -265,6 +278,13 @@ function replaceTemplateVar(
       );
 
       console.log('Done!');
+
+      console.log(
+        `\nTo start working on your custom script, run the following commands:\n`,
+      );
+      console.log(`cd ${destination}`);
+      console.log(`npm install`);
+      console.log(`npm run build`);
     });
 
   cli.parse();

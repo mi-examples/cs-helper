@@ -4,12 +4,15 @@ const path = require('path');
 const { rmSync, readFileSync, readdirSync } = require('fs');
 
 type Webpack = typeof import('webpack');
-type Stats = import('webpack').Stats;
+
+type Configuration = Parameters<Webpack>[0][number];
 
 (async function () {
+  // @ts-ignore
   const { default: webpack } = (await import('webpack')) as unknown as {
     default: Webpack;
   };
+  // @ts-ignore
   const { default: chalk } = await import('chalk');
 
   if (!process.argv[2]) {
@@ -30,12 +33,9 @@ type Stats = import('webpack').Stats;
 
   const V7 = process.argv.includes('--v7');
 
-  const helperPackage = require(path.resolve(
-    __dirname,
-    '..',
-    '..',
-    'package.json',
-  ));
+  const helperPackage = require(
+    path.resolve(__dirname, '..', '..', 'package.json'),
+  );
 
   const packageFile: {
     [p: string]: any;
@@ -45,7 +45,21 @@ type Stats = import('webpack').Stats;
     flag: 'r',
   });
 
+  const presetEnv = V7
+    ? {
+        useBuiltIns: 'entry',
+        corejs: '3.8',
+        targets: {
+          chrome: 97, // January 2022 - supports async/await
+        },
+        modules: false,
+      }
+    : {
+        targets: 'ie 11',
+      };
+
   const compiler = webpack({
+    mode: 'production',
     plugins: [
       new webpack.BannerPlugin({
         banner: function () {
@@ -100,14 +114,27 @@ Code sources:
 ${readme ? `\n***** README.md *****\n\n${readme}\n***** --------- *****` : ''}`;
         },
       }),
+      new webpack.NormalModuleReplacementPlugin(/-TARGET_EXTENSION$/, function (
+        resource,
+      ) {
+        resource.request = resource.request.replace(
+          /-TARGET_EXTENSION/,
+          `-${V7 ? 'v7' : 'v6'}`,
+        );
+
+        if (resource.createData) {
+          resource.createData.request = resource.request;
+        }
+      }),
     ],
     optimization: { minimize: false },
-    target: ['web', !V7 ? 'es5' : 'es2022'],
+    target: ['web', !V7 ? 'es5' : 'es2023'],
     entry: filename,
     output: {
       path: DIST_DIR,
       filename: `${path.parse(filename).name}.js`,
     },
+    stats: 'errors-warnings',
     module: {
       rules: [
         {
@@ -117,21 +144,21 @@ ${readme ? `\n***** README.md *****\n\n${readme}\n***** --------- *****` : ''}`;
             loader: 'babel-loader',
             options: {
               presets: [
-                ['@babel/preset-env', { targets: 'ie 11' }],
+                ['@babel/preset-env', presetEnv],
                 '@babel/preset-typescript',
               ],
             },
           },
         },
         {
-          test: /\.[mc]?js?$/,
+          test: /\.[mc]?js$/,
           exclude: {
             not: [/node_modules/],
           },
           use: {
             loader: 'babel-loader',
             options: {
-              presets: [['@babel/preset-env', { targets: 'ie 11' }]],
+              presets: [['@babel/preset-env', presetEnv]],
             },
           },
         },
@@ -140,17 +167,25 @@ ${readme ? `\n***** README.md *****\n\n${readme}\n***** --------- *****` : ''}`;
     resolve: {
       extensions: ['.tsx', '.ts', '.js', '.mjs', '.cjs'],
     },
-  });
+  } satisfies Configuration);
 
-  await new Promise<{ err?: Error | null; stats?: Stats }>((resolve) => {
+  await new Promise<{
+    err: Parameters<Parameters<typeof compiler.run>[0]>[0];
+    stats: Parameters<Parameters<typeof compiler.run>[0]>[1];
+  }>((resolve) => {
     compiler.run((err, stats) => resolve({ err, stats }));
   }).then(({ err, stats }) => {
     if (err || stats?.hasErrors()) {
-      console.error(err || stats);
+      if (err) {
+        console.error(err);
+      } else {
+        console.log(stats?.toString({ colors: true }));
+      }
 
       console.log(chalk.red('Code compiled with error'));
+    } else {
+      console.log(stats?.toString({ colors: true }));
+      console.log(chalk.green('Done'));
     }
   });
-
-  console.log(chalk.green('Done'));
 })();
