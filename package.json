@@ -36,6 +36,12 @@
   ],
   "author": "Serhii Shpak",
   "license": "ISC",
+  "overrides": {
+    "tar": ">=7.5.7",
+    "npm": {
+      "tar": ">=7.5.7"
+    }
+  },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
@@ -46,9 +52,9 @@
     "semantic-release": "^25.0.2"
   },
   "dependencies": {
-    "@babel/core": "^7.21.4",
-    "@babel/preset-env": "^7.21.4",
-    "@babel/preset-typescript": "^7.21.4",
+    "@babel/core": "^7.26.10",
+    "@babel/preset-env": "^7.26.10",
+    "@babel/preset-typescript": "^7.26.10",
     "babel-loader": "^9.1.2",
     "chalk": "^5.2.0",
     "commander": "^10.0.0",
