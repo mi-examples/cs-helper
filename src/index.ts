@@ -1,5 +1,7 @@
 import './polyfill';
 
+type ParametersType = Record<string, string | number | boolean>;
+
 export type CustomScript = {
   apiToken: string;
 
@@ -7,9 +9,9 @@ export type CustomScript = {
 
   customScriptRunLogId: number;
 
-  parameters?: { [p: string]: string | number | boolean };
+  parameters?: ParametersType;
 
-  parsedParams?: { [p: string]: string | number | boolean };
+  parsedParams?: ParametersType;
 
   /**
    * MI instance's URL
@@ -47,9 +49,11 @@ declare var customScript: CustomScript;
 
 export const cs = customScript;
 
-export function parseParams<T extends CustomScript['parameters']>(
-  defaultParams: Partial<T> = {},
-): T {
+export function parseParams<
+  T extends {
+    [K in keyof T]: T[K] extends string | number | boolean ? T[K] : never;
+  } = ParametersType,
+>(defaultParams: Partial<T> = {}): T {
   const params = Object.assign(
     {},
     defaultParams,
