@@ -13,8 +13,16 @@ async function main() {
   }`);
 }
 
-main().catch(function (e) {
-  cs.error(e.responseText || e.message || e.toString());
+main().then(() => {
+  setTimeout(function () {
+    cs.close();
+  }, 1000);
+}).catch(function (e) {
+  cs.error(
+    e.responseText ||
+      e.message ||
+      (e.toString() === '[object Object]' ? JSON.stringify(e) : e.toString()),
+  );
   cs.error(e.stack || 'No stack trace');
   cs.error('Main execution error');
 
