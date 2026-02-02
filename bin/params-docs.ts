@@ -913,12 +913,24 @@ function analyzeParseParamsInFile(
   return parseParamsCalls;
 }
 
+// Cache for getParseParamsFromCode results, keyed by resolved entry file path
+const parseParamsCache = new Map<string, ParseParamsCallInfo[]>();
+
 /**
- * Analyzes the entry script and all imported scripts for parseParams usage,
- * and returns a formatted banner comment block. Resolves interface/intersection
- * types so their properties appear in the banner.
+ * Extracts parseParams calls from the entry script and all imported scripts.
+ * This is the core function that analyzes code and returns structured parameter data.
+ * Resolves interface/intersection types so their properties appear in the results.
+ * Can be reused in different places (docs generation, base64 encoding, etc.).
+ * Results are cached by entry file path to avoid redundant parsing.
  */
-function analyzeParseParams(entryFile: string): string {
+function getParseParamsFromCode(entryFile: string): ParseParamsCallInfo[] {
+  const resolvedPath = pathLib.resolve(entryFile);
+
+  // Check cache first
+  if (parseParamsCache.has(resolvedPath)) {
+    return parseParamsCache.get(resolvedPath)!;
+  }
+
   try {
     const ts = require('typescript');
     const sourceFiles = getSourceFilesFromEntry(entryFile);
@@ -950,60 +962,117 @@ function analyzeParseParams(entryFile: string): string {
       }
     }
 
-    if (allCalls.length === 0) {
-      return '';
-    }
-
-    const projectRoot = process.cwd();
-    let result = '\n***** PARAMETERS DESCRIPTION *****\n\n';
-
-    allCalls.forEach((call, index) => {
-      const relativePath = pathLib.relative(projectRoot, call.filePath);
-
-      result += `parseParams call #${index + 1} (${relativePath}:${call.line}):\n\n`;
-
-      if (call.typeInfoTable && call.typeInfoTable.length > 0) {
-        result += formatParamsTable(call.typeInfoTable, call.defaultParams);
-      } else if (call.typeInfo) {
-        result += 'Type definition:\n';
-        result += `{\n${call.typeInfo}\n}\n`;
-
-        if (Object.keys(call.defaultParams).length > 0) {
-          result += '\nDefault values:\n';
-          Object.entries(call.defaultParams).forEach(([key, value]) => {
-            result += `  ${key}: ${value}\n`;
-          });
-        } else {
-          result += 'Default values: (none)\n';
-        }
-      } else {
-        result += 'Type definition: (not specified)\n';
-
-        if (Object.keys(call.defaultParams).length > 0) {
-          result += 'Default values:\n';
-          Object.entries(call.defaultParams).forEach(([key, value]) => {
-            result += `  ${key}: ${value}\n`;
-          });
-        } else {
-          result += 'Default values: (none)\n';
-        }
-      }
-
-      if (index < allCalls.length - 1) {
-        result += '\n\n';
-      }
-    });
-
-    result += '\n***** ------------------------- *****';
-
-    return result;
+    // Store in cache before returning
+    parseParamsCache.set(resolvedPath, allCalls);
+    return allCalls;
   } catch (error) {
     console.warn(
       `Warning: Could not analyze parseParams usage: ${error instanceof Error ? error.message : String(error)}`,
     );
 
-    return '';
+    // Cache empty result to avoid repeated failures
+    const emptyResult: ParseParamsCallInfo[] = [];
+    parseParamsCache.set(resolvedPath, emptyResult);
+    return emptyResult;
   }
 }
 
-module.exports = { analyzeParseParams, getSourceFilesFromEntry };
+/**
+ * Formats parseParams call info into a markdown table and description.
+ * Used for generating documentation banners.
+ */
+function formatParseParamsForDocs(
+  calls: ParseParamsCallInfo[],
+  projectRoot: string = process.cwd(),
+): string {
+  if (calls.length === 0) {
+    return '';
+  }
+
+  let result = '\n***** PARAMETERS DESCRIPTION *****\n\n';
+
+  calls.forEach((call, index) => {
+    const relativePath = pathLib.relative(projectRoot, call.filePath);
+
+    result += `parseParams call #${index + 1} (${relativePath}:${call.line}):\n\n`;
+
+    if (call.typeInfoTable && call.typeInfoTable.length > 0) {
+      result += formatParamsTable(call.typeInfoTable, call.defaultParams);
+    } else if (call.typeInfo) {
+      result += 'Type definition:\n';
+      result += `{\n${call.typeInfo}\n}\n`;
+
+      if (Object.keys(call.defaultParams).length > 0) {
+        result += '\nDefault values:\n';
+        Object.entries(call.defaultParams).forEach(([key, value]) => {
+          result += `  ${key}: ${value}\n`;
+        });
+      } else {
+        result += 'Default values: (none)\n';
+      }
+    } else {
+      result += 'Type definition: (not specified)\n';
+
+      if (Object.keys(call.defaultParams).length > 0) {
+        result += 'Default values:\n';
+        Object.entries(call.defaultParams).forEach(([key, value]) => {
+          result += `  ${key}: ${value}\n`;
+        });
+      } else {
+        result += 'Default values: (none)\n';
+      }
+    }
+
+    if (index < calls.length - 1) {
+      result += '\n\n';
+    }
+  });
+
+  result += '\n***** ------------------------- *****';
+
+  return result;
+}
+
+/**
+ * Analyzes the entry script and all imported scripts for parseParams usage,
+ * and returns a formatted banner comment block. Resolves interface/intersection
+ * types so their properties appear in the banner.
+ */
+function analyzeParseParams(entryFile: string): string {
+  const calls = getParseParamsFromCode(entryFile);
+
+  return formatParseParamsForDocs(calls);
+}
+
+/**
+ * Analyzes parseParams usage and returns structured data instead of formatted string.
+ * Returns array of ParseParamsCallInfo objects.
+ */
+function analyzeParseParamsData(entryFile: string): ParseParamsCallInfo[] {
+  return getParseParamsFromCode(entryFile);
+}
+
+/**
+ * Clears the cache for getParseParamsFromCode results.
+ * Useful when source files have changed and you want to force re-parsing.
+ */
+function clearParseParamsCache(): void {
+  parseParamsCache.clear();
+}
+
+/**
+ * Clears a specific entry from the cache.
+ * @param entryFile - The entry file path to remove from cache
+ */
+function clearParseParamsCacheEntry(entryFile: string): void {
+  const resolvedPath = pathLib.resolve(entryFile);
+  parseParamsCache.delete(resolvedPath);
+}
+
+module.exports = {
+  analyzeParseParams,
+  analyzeParseParamsData,
+  getSourceFilesFromEntry,
+  clearParseParamsCache,
+  clearParseParamsCacheEntry,
+};
