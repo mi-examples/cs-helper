@@ -13,6 +13,29 @@
     "release": "semantic-release",
     "version": "npm version --commit-hooks false --git-tag-version false"
   },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./utils": {
+      "import": "./dist/utils/index.js",
+      "require": "./dist/utils/index.js",
+      "types": "./dist/utils/index.d.ts"
+    },
+    "./dist/utils": {
+      "import": "./dist/utils/index.js",
+      "require": "./dist/utils/index.js",
+      "types": "./dist/utils/index.d.ts"
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "utils": ["./dist/utils/index.d.ts"],
+      "dist/utils": ["./dist/utils/index.d.ts"]
+    }
+  },
   "bin": {
     "cs-helper": "dist/bin/build.js",
     "cs-helper-create": "dist/bin/create.js"
