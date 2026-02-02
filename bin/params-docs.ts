@@ -964,6 +964,7 @@ function getParseParamsFromCode(entryFile: string): ParseParamsCallInfo[] {
 
     // Store in cache before returning
     parseParamsCache.set(resolvedPath, allCalls);
+    
     return allCalls;
   } catch (error) {
     console.warn(
@@ -972,7 +973,9 @@ function getParseParamsFromCode(entryFile: string): ParseParamsCallInfo[] {
 
     // Cache empty result to avoid repeated failures
     const emptyResult: ParseParamsCallInfo[] = [];
+
     parseParamsCache.set(resolvedPath, emptyResult);
+
     return emptyResult;
   }
 }
