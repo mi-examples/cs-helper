@@ -4,6 +4,7 @@ const path = require('path');
 const nodeCrypto = require('crypto');
 const { rmSync, readFileSync, readdirSync, existsSync, writeFileSync } = require('fs');
 const paramsDocs = require('./params-docs');
+const paramsBase64 = require('./params-base64');
 
 type Webpack = typeof import('webpack');
 
@@ -87,6 +88,9 @@ type Configuration = Parameters<Webpack>[0][number];
 
   // Analyze parseParams usage in the source file
   const paramsDescription = paramsDocs.analyzeParseParams(filename);
+  const paramsData = paramsDocs.analyzeParseParamsData(filename);
+
+  const paramsBase64String = paramsBase64.generateParamsBase64(paramsData);
 
   // Hash of main file and all imported files (deterministic for same sources)
   const sourceFiles = paramsDocs.getSourceFilesFromEntry(filename);
@@ -155,6 +159,11 @@ Code sources:
   Script source hash: ${hash}
   Checksum: 0000000000000000
   ${V7 ? 'Compatibility: v7 ONLY\n' : ''}
+
+  ***** ----- * PARAMS BASE64 * ----- *****
+  ${paramsBase64String}
+  ***** ----- * END PARAMS BASE64 * ----- *****
+
 ***** ----- ----- ----- ----- ----- ----- *****${paramsDescription}${readme ? `\n\n***** README.md *****\n\n${readme}\n***** --------- *****` : ''}`;
         },
       }),
