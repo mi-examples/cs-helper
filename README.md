@@ -169,16 +169,25 @@ Write-Host "Calculated checksum: $checksum"
 **Linux/Mac (bash):**
 
 ```bash
-# Read file and normalize content
-content=$(cat dist/script.js)
-# Replace tabs with spaces
-content=$(echo "$content" | sed 's/\t/  /g')
-# Normalize line endings to LF
-content=$(echo "$content" | sed 's/\r\n/\n/g' | sed 's/\r/\n/g')
-# Replace checksum placeholder
-content=$(echo "$content" | sed 's/Checksum: [0-9a-f]\{16\}/Checksum: 0000000000000000/')
-# Calculate hash
-checksum=$(echo -n "$content" | sha256sum | cut -d' ' -f1 | cut -c1-16)
+# Calculate checksum with normalization pipeline (preserves trailing newlines)
+# Detect available SHA-256 command
+if command -v sha256sum &> /dev/null; then
+  HASH_CMD="sha256sum"
+elif command -v shasum &> /dev/null; then
+  HASH_CMD="shasum -a 256"
+else
+  echo "Error: No SHA-256 command found" >&2
+  exit 1
+fi
+
+checksum=$(
+  sed $'s/\t/  /g' dist/script.js \
+  | tr -d '\r' \
+  | sed 's/Checksum: [0-9a-f]\{16\}/Checksum: 0000000000000000/' \
+  | $HASH_CMD \
+  | cut -d' ' -f1 \
+  | cut -c1-16
+)
 echo "Calculated checksum: $checksum"
 ```
 
