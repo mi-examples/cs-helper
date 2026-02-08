@@ -189,7 +189,6 @@ checksum=$(
   | cut -c1-16
 )
 echo "Calculated checksum: $checksum"
-echo "Calculated checksum: $checksum"
 ```
 
 **Node.js:**
