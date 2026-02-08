@@ -170,14 +170,25 @@ Write-Host "Calculated checksum: $checksum"
 
 ```bash
 # Calculate checksum with normalization pipeline (preserves trailing newlines)
+# Detect available SHA-256 command
+if command -v sha256sum &> /dev/null; then
+  HASH_CMD="sha256sum"
+elif command -v shasum &> /dev/null; then
+  HASH_CMD="shasum -a 256"
+else
+  echo "Error: No SHA-256 command found" >&2
+  exit 1
+fi
+
 checksum=$(
   sed $'s/\t/  /g' dist/script.js \
   | tr -d '\r' \
   | sed 's/Checksum: [0-9a-f]\{16\}/Checksum: 0000000000000000/' \
-  | sha256sum \
+  | $HASH_CMD \
   | cut -d' ' -f1 \
   | cut -c1-16
 )
+echo "Calculated checksum: $checksum"
 echo "Calculated checksum: $checksum"
 ```
 
