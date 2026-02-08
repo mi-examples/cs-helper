@@ -1,0 +1,94 @@
+---
+description: Commit messages must follow semantic-release Angular preset format
+alwaysApply: true
+---
+
+# Commit Message Format
+
+All commit messages must follow the semantic-release Angular preset format to ensure proper versioning and changelog generation.
+
+## Format
+
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+## Commit Types
+
+Use one of these types (as configured in `.releaserc.json`):
+
+- `feat`: A new feature
+- `fix`: A bug fix
+- `docs`: Documentation only changes
+- `style`: Code style changes (formatting, missing semi colons, etc.)
+- `refactor`: Code refactoring without bug fixes or features
+- `perf`: Performance improvements
+- `test`: Adding or updating tests
+- `chore`: Changes to build process or auxiliary tools
+- `ci`: Changes to CI configuration files and scripts
+- `build`: Changes that affect the build system or external dependencies
+
+## Examples
+
+```bash
+# ✅ GOOD - Simple feature
+feat: add user authentication
+
+# ✅ GOOD - Feature with scope
+feat(auth): add OAuth2 support
+
+# ✅ GOOD - Bug fix with scope
+fix(api): resolve timeout issue in request handler
+
+# ✅ GOOD - Breaking change (use ! after type)
+feat!: change API response format
+
+# ✅ GOOD - With body and footer
+feat(parser): add support for JSON schema validation
+
+Add comprehensive validation using ajv library.
+This ensures all parsed JSON conforms to the expected schema.
+
+BREAKING CHANGE: Invalid JSON schemas will now throw errors instead of warnings.
+
+# ❌ BAD - Missing type
+Add new feature
+
+# ❌ BAD - Wrong type
+update: change button color
+
+# ❌ BAD - No colon after type
+feat add authentication
+
+# ❌ BAD - Type not in allowed list
+feature: add new endpoint
+```
+
+## Rules
+
+1. **Type is required** and must be one of the allowed types
+2. **Scope is optional** but recommended for clarity
+3. **Subject is required** and should be lowercase, imperative mood ("add" not "added" or "adds")
+4. **Body is optional** but recommended for complex changes
+5. **Footer is optional** - use for breaking changes or issue references
+6. **Breaking changes** should include `!` after the type and `BREAKING CHANGE:` in the footer
+
+## Breaking Changes
+
+For breaking changes, use `!` after the type:
+
+```bash
+feat!: remove deprecated API endpoint
+```
+
+Or include in the footer:
+
+```bash
+feat(api): update response structure
+
+BREAKING CHANGE: Response now returns data in nested object instead of flat structure
+```

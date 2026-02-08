@@ -133,6 +133,83 @@ The built script includes a banner with metadata:
 
 All metadata is included automatically in the banner when building your custom script.
 
+### Verifying the Checksum
+
+The checksum ensures the built file hasn't been modified after build. To verify the checksum:
+
+1. **Replace the checksum value** in the banner with `0000000000000000`
+2. **Normalize the file content**:
+   - Convert tabs to spaces (2 spaces per tab)
+   - Normalize line endings to LF (`\n`)
+3. **Calculate SHA-256 hash** of the normalized content
+4. **Take the first 16 hex characters** of the hash
+5. **Compare** with the stored checksum value
+
+#### Verification Methods
+
+**Windows PowerShell:**
+
+```powershell
+# Read file and normalize content
+$content = Get-Content -Path "dist/script.js" -Raw -Encoding UTF8
+# Replace tabs with spaces
+$content = $content -replace "`t", "  "
+# Normalize line endings to LF
+$content = $content -replace "`r`n", "`n" -replace "`r", "`n"
+# Replace checksum placeholder
+$content = $content -replace "Checksum: [0-9a-f]{16}", "Checksum: 0000000000000000"
+# Calculate hash
+$bytes = [System.Text.Encoding]::UTF8.GetBytes($content)
+$hash = [System.Security.Cryptography.SHA256]::Create().ComputeHash($bytes)
+$hashHex = [System.BitConverter]::ToString($hash) -replace "-", ""
+$checksum = $hashHex.Substring(0, 16).ToLower()
+Write-Host "Calculated checksum: $checksum"
+```
+
+**Linux/Mac (bash):**
+
+```bash
+# Read file and normalize content
+content=$(cat dist/script.js)
+# Replace tabs with spaces
+content=$(echo "$content" | sed 's/\t/  /g')
+# Normalize line endings to LF
+content=$(echo "$content" | sed 's/\r\n/\n/g' | sed 's/\r/\n/g')
+# Replace checksum placeholder
+content=$(echo "$content" | sed 's/Checksum: [0-9a-f]\{16\}/Checksum: 0000000000000000/')
+# Calculate hash
+checksum=$(echo -n "$content" | sha256sum | cut -d' ' -f1 | cut -c1-16)
+echo "Calculated checksum: $checksum"
+```
+
+**Node.js:**
+
+```javascript
+const fs = require('fs');
+const crypto = require('crypto');
+
+// Read file
+let content = fs.readFileSync('dist/script.js', 'utf-8');
+
+// Normalize: tabs to spaces
+content = content.replace(/\t/g, '  ');
+
+// Normalize: line endings to LF
+content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+// Replace checksum placeholder
+content = content.replace(/Checksum: [0-9a-f]{16}/, 'Checksum: 0000000000000000');
+
+// Calculate hash
+const hash = crypto.createHash('sha256');
+hash.update(Buffer.from(content, 'utf-8'));
+const checksum = hash.digest('hex').slice(0, 16);
+
+console.log('Calculated checksum:', checksum);
+```
+
+**Note:** The checksum calculation normalizes content (tabs to spaces, line endings to LF) to ensure consistent results across different platforms and editors.
+
 ### Banner Example
 
 Here's an example of what the banner looks like in the built script:
