@@ -247,18 +247,29 @@ Code sources:
 
       const outputPath = path.join(DIST_DIR, outputBasename);
       const content = readFileSync(outputPath, { encoding: 'utf-8' });
+      const contentWithoutTabs = content.replace(/\t/g, '  ');
+      
+      // Normalize line endings to LF (matches validation code checksum2)
+      const contentNormalized = contentWithoutTabs.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+      
+      // Calculate hash from normalized content (matches Get-FileHash when normalized to LF)
+      // Use Buffer.from() to match TextEncoder.encode() behavior in validation code
+      const contentWithPlaceholder = contentNormalized;
+      const data = Buffer.from(contentWithPlaceholder, 'utf-8');
       const buildHasher = nodeCrypto.createHash('sha256');
 
-      buildHasher.update(content);
-
+      buildHasher.update(data);
+      
       const buildHash = buildHasher.digest('hex').slice(0, 16);
-      const contentWithHash = content.replace(
+      
+      // Replace placeholder with actual hash
+      const contentWithHash = contentNormalized.replace(
         `Checksum: ${BUILD_HASH_PLACEHOLDER}`,
         `Checksum: ${buildHash}`,
       );
 
       console.log(chalk.green(`Checksum: ${buildHash}`));
-      writeFileSync(outputPath, contentWithHash);
+      writeFileSync(outputPath, contentWithHash, { encoding: 'utf-8' });
 
       console.log(chalk.green('Done'));
     }
