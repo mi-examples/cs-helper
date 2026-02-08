@@ -169,20 +169,15 @@ Write-Host "Calculated checksum: $checksum"
 **Linux/Mac (bash):**
 
 ```bash
-# Read file content
-content=$(cat dist/script.js)
-
-# Replace tabs with two spaces
-content=$(printf '%s' "$content" | sed $'s/\t/  /g')
-
-# Remove CR characters (normalize line endings to LF)
-content=$(printf '%s' "$content" | tr -d '\r')
-
-# Replace checksum placeholder
-content=$(printf '%s' "$content" | sed 's/Checksum: [0-9a-f]\{16\}/Checksum: 0000000000000000/')
-
-# Calculate hash from exact byte sequence
-checksum=$(printf '%s' "$content" | sha256sum | cut -d' ' -f1 | cut -c1-16)
+# Calculate checksum with normalization pipeline (preserves trailing newlines)
+checksum=$(
+  sed $'s/\t/  /g' dist/script.js \
+  | tr -d '\r' \
+  | sed 's/Checksum: [0-9a-f]\{16\}/Checksum: 0000000000000000/' \
+  | sha256sum \
+  | cut -d' ' -f1 \
+  | cut -c1-16
+)
 echo "Calculated checksum: $checksum"
 ```
 
