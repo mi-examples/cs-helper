@@ -37,10 +37,10 @@ Run command to build your code `npm run build`
 
 ### Create new script
 
-Scaffold a new custom script project from a template using `cs-helper-create`:
+Scaffold a new custom script project from a template using `cs-helper`:
 
 ```shell
-npx @metricinsights/cs-helper-create [destination]
+npx -p @metricinsights/cs-helper cs-helper-create [destination]
 ```
 
 **How it works:**
@@ -78,7 +78,7 @@ npx @metricinsights/cs-helper-create [destination]
 **Example (non-interactive):**
 
 ```shell
-npx @metricinsights/cs-helper-create -t custom-script-ts -n my-script -d "My custom script" -v 1.0.0 ./my-script
+npx -p @metricinsights/cs-helper cs-helper-create -t custom-script-ts -n my-script -d "My custom script" -v 1.0.0 ./my-script
 ```
 
 ### Basic usage
