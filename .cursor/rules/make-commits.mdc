@@ -1,0 +1,35 @@
+---
+description: Analyze changes and create commits by type following commit rules
+alwaysApply: false
+---
+
+# Make Commits
+
+When the user asks to make or create commits:
+
+1. **Analyze changes** — Run `git status` and `git diff` to inspect modified, added, and deleted files
+2. **Group by type** — Categorize changes into logical groups based on what they do (feature, fix, docs, refactor, chore, etc.)
+3. **Create commits** — Make separate commits for each group, following the [commit message format](.cursor/rules/commit-messages.mdc)
+
+## Workflow
+
+1. Review each changed file and its diff
+2. Assign a commit type and scope based on the change:
+   - `feat` — new functionality
+   - `fix` — bug fixes
+   - `docs` — documentation only
+   - `refactor` — code restructuring, no behavior change
+   - `style` — formatting, whitespace
+   - `chore` — deps, config, tooling
+   - `build` — build system
+3. Group related files into a single commit when they belong to the same change
+4. Write commit messages in format: `<type>(<scope>): <subject>`
+5. Stage and commit each group separately
+
+## Example grouping
+
+- README.md changes → `docs: ...`
+- package.json + package-lock.json + template package.json → `chore(deps): ...`
+- bin/build.ts refactor → `refactor(build): ...`
+- bin/create.ts type fix → `fix(create): ...`
+- Multiple params files sharing types → `refactor(params): ...`

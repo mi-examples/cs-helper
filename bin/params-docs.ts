@@ -1,7 +1,7 @@
 const pathLib = require('path');
 const fs = require('fs');
 
-type ParamRow = {
+export type ParamRow = {
   name: string;
   typeStr: string;
   optional: boolean;
@@ -10,7 +10,7 @@ type ParamRow = {
   acceptsValues?: string[];
 };
 
-type ParseParamsCallInfo = {
+export type ParseParamsCallInfo = {
   filePath: string;
   typeInfo: string;
   typeInfoTable?: ParamRow[];

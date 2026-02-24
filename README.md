@@ -27,13 +27,59 @@ Add `cs-helper` as package.json script to build you code into a bundle
 
 Run command to build your code `npm run build`
 
-#### API options
+#### Build API options
 
-| Option           | Description                                                      | Default |
-|------------------|------------------------------------------------------------------|---------|
-| `--clean`        | Clean dist folder before build                                  | `false` |
-| `--v7`           | CS will be compatible only with v7                              | `false` |
-| `--readme <path>` | Path to README.md file to include in the built script banner    | Auto-detect `README.md` in project root |
+| Option            | Description                                                  | Default                                 |
+| ----------------- | ------------------------------------------------------------ | --------------------------------------- |
+| `--clean`         | Clean dist folder before build                               | `false`                                 |
+| `--v7`            | CS will be compatible only with v7                           | `false`                                 |
+| `--readme <path>` | Path to README.md file to include in the built script banner | Auto-detect `README.md` in project root |
+
+### Create new script
+
+Scaffold a new custom script project from a template using `cs-helper-create`:
+
+```shell
+npx @metricinsights/cs-helper-create [destination]
+```
+
+**How it works:**
+
+1. **Destination** — Target folder for the new project. Defaults to the current directory (`.`). The folder must be empty or not exist.
+
+2. **Interactive prompts** — If options are omitted, the CLI prompts for:
+   - **Template** — `custom-script-js` or `custom-script-ts`
+   - **Package name** — Defaults to the destination folder name
+   - **Description** — Package description
+   - **Version** — Defaults to `1.0.0`
+   - **MI v7** — Whether to target Metric Insights v7 only (not compatible with v6)
+
+3. **Template processing** — Files from the chosen template are copied and placeholders are replaced:
+   - `%PACKAGE_NAME%` → package name
+   - `%PACKAGE_VERSION%` → version
+   - `%PACKAGE_DESCRIPTION%` → description
+   - `%V7%` → ` --v7` or empty (for build command)
+   - `%PLUGIN_VERSION%` → cs-helper version
+
+4. **Entry file** — `index.js` or `index.ts` is renamed to `{packageName}.js` or `{packageName}.ts`.
+
+5. **Next steps** — The CLI prints instructions to `cd`, `npm install`, and `npm run build`.
+
+#### Create command options
+
+| Option                     | Description                                        | Default                 |
+| -------------------------- | -------------------------------------------------- | ----------------------- |
+| `-t, --template <name>`    | Template: `custom-script-js` or `custom-script-ts` | Prompt                  |
+| `-n, --name <name>`        | Package name                                       | Destination folder name |
+| `-d, --description <text>` | Package description                                | Prompt                  |
+| `-v, --version <version>`  | Package version                                    | `1.0.0`                 |
+| `--v7`                     | Target MI v7 only (not compatible with v6)         | `false`                 |
+
+**Example (non-interactive):**
+
+```shell
+npx @metricinsights/cs-helper-create -t custom-script-ts -n my-script -d "My custom script" -v 1.0.0 ./my-script
+```
 
 ### Basic usage
 
@@ -73,9 +119,9 @@ const currentLevel = getLogLevel(); // Returns: 1
 
 // Log messages with different levels
 log('Debug information', LOG_LEVEL_DEBUG); // Level 0 - NOT visible (current level is 1)
-log('Info message', LOG_LEVEL_INFO);        // Level 1 - VISIBLE ✓
-log('Warning message', LOG_LEVEL_WARN);     // Level 2 - VISIBLE ✓
-log('Error occurred', LOG_LEVEL_ERROR);     // Level 3 - VISIBLE ✓
+log('Info message', LOG_LEVEL_INFO); // Level 1 - VISIBLE ✓
+log('Warning message', LOG_LEVEL_WARN); // Level 2 - VISIBLE ✓
+log('Error occurred', LOG_LEVEL_ERROR); // Level 3 - VISIBLE ✓
 
 // Change log level to show debug messages too
 setLogLevel(LOG_LEVEL_DEBUG); // Now level 0
@@ -207,7 +253,10 @@ content = content.replace(/\t/g, '  ');
 content = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
 // Replace checksum placeholder
-content = content.replace(/Checksum: [0-9a-f]{16}/, 'Checksum: 0000000000000000');
+content = content.replace(
+  /Checksum: [0-9a-f]{16}/,
+  'Checksum: 0000000000000000',
+);
 
 // Calculate hash
 const hash = crypto.createHash('sha256');
