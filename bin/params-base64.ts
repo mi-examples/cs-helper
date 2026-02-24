@@ -1,4 +1,4 @@
-type ParamType = 'string' | 'number' | 'boolean' | 'password' | 'unknown';
+import type { ParamRow, ParseParamsCallInfo } from './params-docs';
 
 interface ParamHash {
   name: string;
