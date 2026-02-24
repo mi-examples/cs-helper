@@ -5,33 +5,34 @@ alwaysApply: false
 
 # Create Pull Request
 
-When the user asks to create a PR (pull request), **do not push or create the PR**. Instead, notify the user that they need to:
+When the user asks to create a PR (pull request):
 
-1. Push the current branch to origin (if not already pushed)
-2. Create the pull request manually
+## Must do
 
-Provide the following guidance so the user can complete the steps:
+1. **Create a PR message** — Analyze commits and changes, compose a merge/PR message that includes the current branch name (typically the task number, e.g. `pp-2813`)
+2. **Save to temp file** — Write the message to a temporary MD file (e.g. `pr-message.md` or `tmp/pr-message.md` in the project root)
+
+## Do not do
+
+- Push the branch
+- Create the PR (user does this manually)
 
 ## Target Branch
 
 - **Default**: `origin/develop`
 - **Override**: Use a different target branch only if the user explicitly specifies one
 
-## PR Message
+## PR Message format
 
-The pull request message must include the current branch name (typically the task number, e.g. `pp-2813`). Example:
+Include the current branch name in the title. Example:
 
 ```
 pp-2813: <brief description of changes>
 ```
 
-Or:
-
-```
-[pp-2813] Add create command documentation and dependency updates
-```
+Body: summarize commits or key changes.
 
 ## What the user needs to do
 
 - Push: `git push -u origin HEAD`
-- Create PR (GitHub CLI): `gh pr create --base develop --title "<branch-name>: <description>"`
+- Create PR: use the saved message file, or `gh pr create --base develop --title "..." --body-file pr-message.md`
