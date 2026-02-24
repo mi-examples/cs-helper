@@ -249,7 +249,7 @@ function replaceTemplateVar(
 
       copyFilesRecursive(
         templateDir,
-        destination,
+        destinationFolder,
         (filepath) => {
           if (isBinaryFileSync(filepath)) {
             return true;
@@ -282,7 +282,7 @@ function replaceTemplateVar(
       console.log(
         `\nTo start working on your custom script, run the following commands:\n`,
       );
-      console.log(`cd ${destination}`);
+      console.log(`cd ${destinationFolder}`);
       console.log(`npm install`);
       console.log(`npm run build`);
     });
