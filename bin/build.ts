@@ -43,17 +43,21 @@ function parsePackageRepository(
   if (normalized.startsWith('https://') || normalized.startsWith('http://')) {
     return normalized;
   }
+
   if (normalized.startsWith('git://')) {
     return normalized.replace(/^git:\/\//, 'https://');
   }
+
   if (normalized.startsWith('ssh://')) {
     // ssh://git@github.com/user/repo.git -> https://github.com/user/repo.git
     return normalized
       .replace(/^ssh:\/\/git@/, 'https://')
       .replace(/^ssh:\/\//, 'https://');
   }
+
   // git@github.com:user/repo.git -> https://github.com/user/repo.git
   const scpMatch = normalized.match(/^git@([^:]+):(.+)$/);
+  
   if (scpMatch) {
     return `https://${scpMatch[1]}/${scpMatch[2]}`;
   }
@@ -62,12 +66,21 @@ function parsePackageRepository(
 }
 
 (async function () {
-  // @ts-ignore
-  const { default: webpack } = (await import('webpack')) as unknown as {
-    default: Webpack;
-  };
-  // @ts-ignore
-  const { default: chalk } = await import('chalk');
+  // Resolve webpack from cs-helper's own node_modules (not the consuming project's).
+  // Use require() with resolved path - dynamic import() gets transpiled to require(fileUrl)
+  // which fails because require() does not accept file:// URLs.
+  const packageRoot = path.resolve(__dirname, '..', '..');
+  const webpackPath = require.resolve('webpack', { paths: [packageRoot] });
+  const webpack = require(webpackPath) as Webpack;
+
+  if (!webpack) {
+    throw new Error(
+      'Failed to load webpack. Ensure @metricinsights/cs-helper is installed with its dependencies.',
+    );
+  }
+
+  // Chalk v5 is ESM; require() returns { default: chalk }
+  const chalk = require('chalk').default ?? require('chalk');
 
   if (!process.argv[2]) {
     throw new Error(chalk.red("Main filename can't be undefined"));
