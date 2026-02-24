@@ -1,3 +1,11 @@
+## [0.6.1-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.6.0...v0.6.1-beta.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* **build:** resolve webpack from package root and fix chalk ESM interop ([c7f1822](https://github.com/mi-examples/cs-helper/commit/c7f18220f5dec0a90b5ea13ba91696f2479eee85))
+* **create:** use resolved path in copyFilesRecursive and cd output ([5a9eb12](https://github.com/mi-examples/cs-helper/commit/5a9eb12edaf2c62acf99251381e0e3749af00bd2))
+
 # [0.6.0-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.5.1...v0.6.0-beta.1) (2026-02-24)
 
 
