@@ -1,3 +1,15 @@
+# [0.6.0-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.5.1...v0.6.0-beta.1) (2026-02-24)
+
+
+### Bug Fixes
+
+* **create:** add type assertion for writeFileSync ([89b55d4](https://github.com/mi-examples/cs-helper/commit/89b55d419377246c23d8fe65b31e9892dac89475))
+
+
+### Features
+
+* **build:** add normalization for git repository URL formats ([20ca768](https://github.com/mi-examples/cs-helper/commit/20ca7684b29eb60857636b99c81481ea60eaf6d5))
+
 ## [0.5.1-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.5.0...v0.5.1-beta.1) (2026-02-08)
 
 

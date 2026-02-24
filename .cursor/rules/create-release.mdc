@@ -1,0 +1,40 @@
+---
+description: Create release tag from origin/main with version from package.json
+alwaysApply: false
+---
+
+# Create Release
+
+When the user asks to create a release:
+
+## Run these commands (must execute)
+
+1. **Fetch and pull** from main: `git fetch origin main` and `git pull origin main`
+
+## Do NOT run — user must do manually
+
+- Create tag
+- Push tag
+
+Notify the user what they need to do for the rest.
+
+## Tag Format (for user guidance)
+
+- **Name**: `v<version>` (e.g. `v0.5.1`)
+- **Version source**: `package.json` → `version` field
+- **Strip suffixes**: Remove any pre-release suffixes (`-beta.1`, `-alpha.2`, `-rc.1`, etc.)
+
+Examples:
+- `0.5.1-beta.1` → tag `v0.5.1`
+- `1.2.0` → tag `v1.2.0`
+- `2.0.0-rc.3` → tag `v2.0.0`
+
+## Base Branch
+
+The tag should be created from `origin/main` (latest commit on main).
+
+## What the user needs to do
+
+1. Get version from `package.json` (strip suffix: `0.5.1-beta.1` → `0.5.1`)
+2. Create tag: `git tag -a "v<version>" origin/main -m "Release v<version>"`
+3. Push tag: `git push origin "v<version>"`

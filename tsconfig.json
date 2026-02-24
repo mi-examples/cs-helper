@@ -5,6 +5,7 @@
     "module": "es2015",
     "moduleResolution": "node",
     "removeComments": true,
+    "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
     "target": "es5",

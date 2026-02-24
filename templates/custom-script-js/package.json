@@ -12,7 +12,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "prettier": "^3.3.3"
+    "prettier": "^3.8.1"
   },
   "dependencies": {
     "@metricinsights/cs-helper": "^%PLUGIN_VERSION%"

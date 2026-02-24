@@ -93,7 +93,7 @@ function replaceTemplateVar(
           const result = middleware(targetFile, destination);
 
           if (typeof result === 'string' || Buffer.isBuffer(result)) {
-            writeFileSync(destinationPath, result);
+            writeFileSync(destinationPath, result as string | Uint8Array);
           } else if (result !== false) {
             copyFileSync(targetFile, destinationPath);
           }
