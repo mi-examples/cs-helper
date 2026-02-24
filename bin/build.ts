@@ -37,10 +37,28 @@ function parsePackageRepository(
     return '';
   }
 
-  // Strip "git+", "git://", "ssh://" etc. to get https:// URL
-  const httpStart = url.indexOf('http');
+  // Normalize git://, ssh://, git@host:path etc. to https:// URL
+  let normalized = url.replace(/^git\+/, ''); // git+https://... or git+ssh://...
 
-  return httpStart >= 0 ? url.slice(httpStart) : url;
+  if (normalized.startsWith('https://') || normalized.startsWith('http://')) {
+    return normalized;
+  }
+  if (normalized.startsWith('git://')) {
+    return normalized.replace(/^git:\/\//, 'https://');
+  }
+  if (normalized.startsWith('ssh://')) {
+    // ssh://git@github.com/user/repo.git -> https://github.com/user/repo.git
+    return normalized
+      .replace(/^ssh:\/\/git@/, 'https://')
+      .replace(/^ssh:\/\//, 'https://');
+  }
+  // git@github.com:user/repo.git -> https://github.com/user/repo.git
+  const scpMatch = normalized.match(/^git@([^:]+):(.+)$/);
+  if (scpMatch) {
+    return `https://${scpMatch[1]}/${scpMatch[2]}`;
+  }
+
+  return normalized;
 }
 
 (async function () {
