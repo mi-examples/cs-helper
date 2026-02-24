@@ -1,0 +1,37 @@
+---
+description: Create pull request into origin/develop from current branch
+alwaysApply: false
+---
+
+# Create Pull Request
+
+When the user asks to create a PR (pull request), **do not push or create the PR**. Instead, notify the user that they need to:
+
+1. Push the current branch to origin (if not already pushed)
+2. Create the pull request manually
+
+Provide the following guidance so the user can complete the steps:
+
+## Target Branch
+
+- **Default**: `origin/develop`
+- **Override**: Use a different target branch only if the user explicitly specifies one
+
+## PR Message
+
+The pull request message must include the current branch name (typically the task number, e.g. `pp-2813`). Example:
+
+```
+pp-2813: <brief description of changes>
+```
+
+Or:
+
+```
+[pp-2813] Add create command documentation and dependency updates
+```
+
+## What the user needs to do
+
+- Push: `git push -u origin HEAD`
+- Create PR (GitHub CLI): `gh pr create --base develop --title "<branch-name>: <description>"`
