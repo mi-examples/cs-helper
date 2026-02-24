@@ -12,8 +12,8 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "prettier": "^3.3.3",
-    "typescript": "^5.0.2"
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "@metricinsights/cs-helper": "^%PLUGIN_VERSION%"
