@@ -1,3 +1,10 @@
+## [0.6.1-beta.2](https://github.com/mi-examples/cs-helper/compare/v0.6.1-beta.1...v0.6.1-beta.2) (2026-02-26)
+
+
+### Bug Fixes
+
+* **create:** handle prompts import for CommonJS and ESM ([3858da1](https://github.com/mi-examples/cs-helper/commit/3858da1c220996118a9f2886861d36f40fccaa51))
+
 ## [0.6.1-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.6.0...v0.6.1-beta.1) (2026-02-24)
 
 
