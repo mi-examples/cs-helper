@@ -38,11 +38,12 @@ function replaceTemplateVar(
 (async function () {
   // @ts-ignore
   const { program, Option, Argument } = await import('commander');
+  const promptsModule = await import('prompts');
   const prompts = (
-    (await import('prompts')) as never as {
-      default: typeof import('prompts');
-    }
-  ).default;
+    'default' in promptsModule && typeof promptsModule.default === 'function'
+      ? promptsModule.default
+      : promptsModule
+  ) as typeof import('prompts');
   const {
     readdirSync,
     existsSync,
