@@ -1,3 +1,10 @@
+## [0.6.4-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.6.3...v0.6.4-beta.1) (2026-04-03)
+
+
+### Bug Fixes
+
+* **deps:** resolve npm audit and bump ts-loader ([39a0a8e](https://github.com/mi-examples/cs-helper/commit/39a0a8e4a3c1d1b89d0ea8f88a599c511ff174d0))
+
 ## [0.6.1-beta.2](https://github.com/mi-examples/cs-helper/compare/v0.6.1-beta.1...v0.6.1-beta.2) (2026-02-26)
 
 
