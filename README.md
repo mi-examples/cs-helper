@@ -53,6 +53,7 @@ npx -p @metricinsights/cs-helper cs-helper-create [destination]
    - **Description** — Package description
    - **Version** — Defaults to `1.0.0`
    - **MI v7** — Whether to target Metric Insights v7 only (not compatible with v6)
+   - **AI assistant files** — Multiselect of available tools (e.g. Cursor rules, Claude project file), when the installed package ships **`ai-addons`**. Skipped when stdin is not a TTY unless you pass **`--ai`** (see below).
 
 3. **Template processing** — Files from the chosen template are copied and placeholders are replaced:
    - `%PACKAGE_NAME%` → package name
@@ -61,9 +62,11 @@ npx -p @metricinsights/cs-helper cs-helper-create [destination]
    - `%V7%` → ` --v7` or empty (for build command)
    - `%PLUGIN_VERSION%` → cs-helper version
 
-4. **Entry file** — `index.js` or `index.ts` is renamed to `{packageName}.js` or `{packageName}.ts`.
+4. **AI assistant add-ons (optional)** — If you select one or more tools (interactively or via **`--ai`**), files from **`ai-addons/<tool>/`** in the package are copied into the new project **after** the template, with the **same** placeholder substitution. Add-ons are optional; omit them if you do not need editor- or assistant-specific files.
 
-5. **Next steps** — The CLI prints instructions to `cd`, `npm install`, and `npm run build`.
+5. **Entry file** — `index.js` or `index.ts` is renamed to `{packageName}.js` or `{packageName}.ts`.
+
+6. **Next steps** — The CLI prints instructions to `cd`, `npm install`, and `npm run build`.
 
 #### Create command options
 
@@ -74,6 +77,9 @@ npx -p @metricinsights/cs-helper cs-helper-create [destination]
 | `-d, --description <text>` | Package description                                | Prompt                  |
 | `-v, --version <version>`  | Package version                                    | `1.0.0`                 |
 | `--v7`                     | Target MI v7 only (not compatible with v6)         | `false`                 |
+| `--ai <tool>`              | Copy files from `ai-addons/<tool>/` (repeatable)   | —                       |
+
+The **`--ai`** option is registered only when the installed package includes an **`ai-addons`** directory. Valid values are listed in **`cs-helper-create --help`** (for example `cursor`, `claude`). In **interactive** mode with a TTY, you get a multiselect if you do not pass **`--ai`**. In **non-interactive** mode (e.g. CI), omit **`--ai`** to skip AI files, or pass one or more **`--ai <tool>`** flags.
 
 **Example (non-interactive):**
 
@@ -81,17 +87,50 @@ npx -p @metricinsights/cs-helper cs-helper-create [destination]
 npx -p @metricinsights/cs-helper cs-helper-create -t custom-script-ts -n my-script -d "My custom script" -v 1.0.0 ./my-script
 ```
 
+**Example with AI assistant files (repeat `--ai` for multiple tools):**
+
+```shell
+npx -p @metricinsights/cs-helper cs-helper-create -t custom-script-ts -n my-script -d "My custom script" -v 1.0.0 --ai cursor --ai claude ./my-script
+```
+
 ### Basic usage
 
 ```javascript
 import { cs, parseParams } from '@metricinsights/cs-helper';
 
-const parsedParams = parseParams({ defaultValue: 1 }); // { defaultValue: 1 } & cs.params
+const parsedParams = parseParams({ defaultValue: 1 });
+// Merged object: defaults plus any keys from cs.parameters (runtime wins on conflicts)
 
 setTimeout(() => {
   cs.close();
 }, 1000);
 ```
+
+### `parseParams`
+
+Use **`parseParams(defaultParams?)`** to combine **default values** you define in code with **runtime parameters** from the host (**`cs.parameters`**). Merge order is: start from `defaultParams`, then apply **`cs.parameters`** so values configured for the script in Metric Insights override defaults for the same keys.
+
+The function returns that merged object and also assigns it to **`cs.parsedParams`** (and to the same property on the global object in browser-like environments) so the resolved map is available everywhere without passing it manually.
+
+In **TypeScript**, pass an explicit generic so the build can document your parameters accurately:
+
+```typescript
+const params = parseParams<{
+  region: string;
+  limit: number;
+  enabled: boolean;
+}>({
+  region: 'us',
+  limit: 100,
+  enabled: true,
+});
+```
+
+Only **`string`**, **`number`**, and **`boolean`** values are supported for parameter types (MI passes scalar values). At build time, the cs-helper CLI scans `parseParams` usage to generate the **Params Base64** banner block and the parameter tables in the [Build Output](#build-output) section—see **Params Base64** there for what is embedded.
+
+### Backend HTTP requests (`runApiRequest`)
+
+Use **`cs.runApiRequest(url, settings?)`** for Metric Insights backend APIs. The host injects API authentication and provides the transport layer. Build URLs from **`cs.homeSite`** (or **`customScript.homeSite`**) plus the API path—see the **Data convertor** example below.
 
 ### Utils usage
 
@@ -146,7 +185,7 @@ import {
 async function main() {
   const dataset = await new Promise((resolve, reject) => {
     cs.runApiRequest(
-      `/api/dataset_data?dataset=${1}`,
+      `${cs.homeSite.replace(/\/?$/, '/')}api/dataset_data?dataset=${1}`,
       Object.assign({}, params, {
         success: resolve,
         error: reject,
