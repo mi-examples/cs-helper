@@ -1,3 +1,10 @@
+# [0.7.0-beta.3](https://github.com/mi-examples/cs-helper/compare/v0.7.0-beta.2...v0.7.0-beta.3) (2026-04-14)
+
+
+### Bug Fixes
+
+* **log:** use performance.now when enabling performance mode ([41c9bb0](https://github.com/mi-examples/cs-helper/commit/41c9bb0cce7b2ed70831c88057629e09b6858ed1))
+
 # [0.7.0-beta.2](https://github.com/mi-examples/cs-helper/compare/v0.7.0-beta.1...v0.7.0-beta.2) (2026-04-14)
 
 
