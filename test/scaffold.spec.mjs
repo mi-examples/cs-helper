@@ -9,6 +9,46 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 
+/**
+ * Basename of the copied pack artifact from `scripts/postbuild.js` (e.g. `metricinsights-cs-helper-latest.tgz`).
+ * Scaffold templates depend on `^%PLUGIN_VERSION%` from npm; unreleased versions are not on the registry, so
+ * integration tests install from this local tarball instead (avoids ETARGET in CI).
+ */
+function getPackLatestBasename() {
+  const pkg = JSON.parse(
+    fs.readFileSync(path.join(repoRoot, 'package.json'), 'utf8'),
+  );
+  const packName = pkg.name.replace(/^@/, '').replace(/\//g, '-');
+
+  return `${packName}-latest.tgz`;
+}
+
+/**
+ * Point the scaffolded project's `@metricinsights/cs-helper` dependency at the repo-root `*-latest.tgz`
+ * produced by `npm run postbuild`.
+ */
+function useLocalCsHelperPack(targetDir) {
+  const tgzBasename = getPackLatestBasename();
+  const tgzPath = path.join(repoRoot, tgzBasename);
+
+  if (!fs.existsSync(tgzPath)) {
+    throw new Error(
+      `Missing ${tgzBasename} at ${tgzPath}. Run "npm run postbuild" in the cs-helper repo first.`,
+    );
+  }
+
+  const relPosix = path
+    .relative(targetDir, tgzPath)
+    .split(path.sep)
+    .join('/');
+  const pkgPath = path.join(targetDir, 'package.json');
+  const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+
+  pkg.dependencies = pkg.dependencies ?? {};
+  pkg.dependencies['@metricinsights/cs-helper'] = `file:${relPosix}`;
+  fs.writeFileSync(pkgPath, `${JSON.stringify(pkg, null, 2)}\n`);
+}
+
 function runNpmSync(args, options) {
   const npmExec = process.env.npm_execpath;
 
@@ -81,12 +121,28 @@ test.describe('project scaffold', () => {
   test.describe.configure({ mode: 'serial' });
 
   test.beforeAll(() => {
-    const build = runNpmSync(['run', 'build:bin'], {
+    const build = runNpmSync(['run', 'build'], {
       cwd: repoRoot,
       encoding: 'utf8',
     });
 
-    expect(build.status, `build:bin stderr: ${build.stderr}\nstdout: ${build.stdout}`).toBe(0);
+    expect(build.status, `build stderr: ${build.stderr}\nstdout: ${build.stdout}`).toBe(
+      0,
+    );
+
+    const postbuild = runNpmSync(['run', 'postbuild'], {
+      cwd: repoRoot,
+      encoding: 'utf8',
+    });
+
+    expect(
+      postbuild.status,
+      `postbuild stderr: ${postbuild.stderr}\nstdout: ${postbuild.stdout}`,
+    ).toBe(0);
+    expect(
+      fs.existsSync(path.join(repoRoot, getPackLatestBasename())),
+      `expected ${getPackLatestBasename()} after postbuild`,
+    ).toBeTruthy();
   });
 
   test('loads project metadata', async () => {
@@ -136,6 +192,8 @@ test.describe('project scaffold', () => {
         expect(generatedPackageJson.name).toBe(packageName);
         expect(buildScript.includes('--v7')).toBe(variant.v7);
 
+        useLocalCsHelperPack(targetDir);
+
         const install = runNpmSync(['install', '--no-audit', '--fund=false'], {
           cwd: targetDir,
           encoding: 'utf8',
@@ -170,6 +228,8 @@ test.describe('project scaffold', () => {
 
       try {
         expect(createRun.status, `create stderr: ${createRun.stderr}\nstdout: ${createRun.stdout}`).toBe(0);
+
+        useLocalCsHelperPack(targetDir);
 
         const install = runNpmSync(['install', '--no-audit', '--fund=false'], {
           cwd: targetDir,
@@ -226,6 +286,8 @@ test.describe('project scaffold', () => {
             `Expected ${relativePath} to exist`,
           ).toBeTruthy();
         }
+
+        useLocalCsHelperPack(targetDir);
 
         const install = runNpmSync(['install', '--no-audit', '--fund=false'], {
           cwd: targetDir,
