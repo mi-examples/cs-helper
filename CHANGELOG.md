@@ -1,3 +1,11 @@
+# [0.7.0-beta.2](https://github.com/mi-examples/cs-helper/compare/v0.7.0-beta.1...v0.7.0-beta.2) (2026-04-14)
+
+
+### Bug Fixes
+
+* **log:** rename setLogPerformance param to avoid shadowing performance ([8e63342](https://github.com/mi-examples/cs-helper/commit/8e6334288c7c68fa94af0cf2970e62f1ab350dc0))
+* **test:** install scaffold from local cs-helper pack tarball ([3007b9d](https://github.com/mi-examples/cs-helper/commit/3007b9d1f97d6a1b7082b3a497097e8a87043095))
+
 # [0.7.0-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.6.4...v0.7.0-beta.1) (2026-04-14)
 
 
