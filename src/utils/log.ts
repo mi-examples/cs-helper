@@ -208,7 +208,7 @@ export function setLogPerformance(usePerformance: boolean) {
   log.PERFORMANCE = usePerformance;
 
   if (usePerformance) {
-    log.startTime = Date.now();
+    log.startTime = performance.now();
   }
 }
 
