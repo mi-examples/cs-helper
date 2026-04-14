@@ -106,6 +106,7 @@ function replaceTemplateVar(
   }
 
   const templatesDirectory = path.resolve(__dirname, '..', '..', 'templates');
+  const aiAddonsDirectory = path.resolve(__dirname, '..', '..', 'ai-addons');
   const pluginPackageJson = JSON.parse(
     readFileSync(path.resolve(__dirname, '..', '..', 'package.json'), {
       encoding: 'utf-8',
@@ -120,11 +121,20 @@ function replaceTemplateVar(
     .filter((dirent) => dirent.isDirectory())
     .map((dirent) => dirent.name);
 
+  const aiAddons = existsSync(aiAddonsDirectory)
+    ? readdirSync(aiAddonsDirectory, {
+        encoding: 'utf-8',
+        withFileTypes: true,
+      })
+        .filter((dirent) => dirent.isDirectory())
+        .map((dirent) => dirent.name)
+    : [];
+
   function dirIsEmpty(path: string): boolean {
     return readdirSync(path).length === 0;
   }
 
-  const cli = program
+  program
     .addOption(
       new Option('-t, --template <template>', 'Template name').choices(
         templates,
@@ -140,7 +150,23 @@ function replaceTemplateVar(
         '--v7, --version-7',
         'Create custom script for MI v7 (not compatible with v6)',
       ),
-    )
+    );
+
+  if (aiAddons.length > 0) {
+    program.addOption(
+      new Option(
+        '--ai <tool>',
+        'Include AI assistant files from ai-addons (repeatable)',
+      )
+        .choices(aiAddons)
+        .argParser((value: string, previous: string[] | undefined) => [
+          ...(previous ?? []),
+          value,
+        ]),
+    );
+  }
+
+  program
     .addArgument(
       new Argument('[destination]', 'Custom script folder destination').default(
         '.',
@@ -156,6 +182,7 @@ function replaceTemplateVar(
         description?: string;
         version?: string;
         v7?: boolean;
+        ai?: string[];
       };
 
       const destinationFolder = path.resolve(process.cwd(), destination);
@@ -238,6 +265,37 @@ function replaceTemplateVar(
           )
         ).value as boolean);
 
+      let selectedAiAddons: string[];
+
+      if (aiAddons.length === 0) {
+        selectedAiAddons = [];
+      } else if (opts.ai !== undefined) {
+        selectedAiAddons = [...new Set(opts.ai)];
+      } else if (process.stdin.isTTY) {
+        selectedAiAddons =
+          (
+            (await prompts(
+              {
+                name: 'value',
+                type: 'multiselect',
+                message: 'Include AI assistant files:',
+                choices: aiAddons.map((name) => ({
+                  title: name,
+                  value: name,
+                })),
+                hint: '- Space to select. Enter to confirm',
+              },
+              { onCancel },
+            )) as { value?: string[] }
+          ).value ?? [];
+      } else {
+        selectedAiAddons = [];
+      }
+
+      selectedAiAddons = selectedAiAddons.filter((name) =>
+        aiAddons.includes(name),
+      );
+
       const replaceMap = {
         '%PACKAGE_NAME%': packageName,
         '%PACKAGE_VERSION%': version,
@@ -278,6 +336,35 @@ function replaceTemplateVar(
         },
       );
 
+      for (const addonName of selectedAiAddons) {
+        const addonDir = path.resolve(aiAddonsDirectory, addonName);
+
+        if (!existsSync(addonDir)) {
+          continue;
+        }
+
+        copyFilesRecursive(
+          addonDir,
+          destinationFolder,
+          (filepath) => {
+            if (isBinaryFileSync(filepath)) {
+              return true;
+            }
+
+            let fileContent = readFileSync(filepath, {
+              encoding: 'utf-8',
+              flag: 'r',
+            });
+
+            for (const [name, value] of Object.entries(replaceMap)) {
+              fileContent = replaceTemplateVar(fileContent, { name, value });
+            }
+
+            return fileContent;
+          },
+        );
+      }
+
       console.log('Done!');
 
       console.log(
@@ -288,5 +375,5 @@ function replaceTemplateVar(
       console.log(`npm run build`);
     });
 
-  cli.parse();
+  program.parse();
 })();

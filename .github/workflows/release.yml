@@ -45,6 +45,9 @@ jobs:
           fi
           echo "Build verification passed"
 
+      - name: Test
+        run: npm test
+
       - name: Update package version
         run: npm version ${{ steps.version.outputs.version }} --no-git-tag-version
 
