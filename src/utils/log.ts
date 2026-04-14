@@ -1,4 +1,14 @@
-// Declare global customScript to avoid circular dependency with main index
+/**
+ * Logging for custom scripts. Output goes through the host `customScript` API so this
+ * module does not import the main bundle (avoids circular dependencies).
+ *
+ * **Levels** (lowest to highest severity): `debug` (0) → `info` (1) → `warn` (2) →
+ * `error` (3) → `emergency` (4). `silent` (10) suppresses normal messages. Each level
+ * has a string name and a numeric string alias (e.g. `'1'` for info).
+ *
+ * **Batching**: {@link log} coalesces lines and flushes on a short timer, when the queue
+ * fills, or when the level changes. {@link error} always calls `customScript.error` immediately.
+ */
 declare var customScript: {
   log: (message: string) => void;
   error: (error: string) => void;
@@ -17,6 +27,7 @@ export const LOG_LEVEL_EMERGENCY_NUM = '4';
 export const LOG_LEVEL_SILENT = 'silent';
 export const LOG_LEVEL_SILENT_NUM = '10';
 
+/** Named log level accepted by {@link parseLogLevel} and {@link setLogLevel}. */
 export type LogLevel =
   | typeof LOG_LEVEL_DEBUG
   | typeof LOG_LEVEL_INFO
@@ -25,6 +36,7 @@ export type LogLevel =
   | typeof LOG_LEVEL_EMERGENCY
   | typeof LOG_LEVEL_SILENT;
 
+/** Stringified level number (`'0'`–`'4'`, `'10'`) accepted by {@link parseLogLevel}. */
 export type LogLevelNum =
   | typeof LOG_LEVEL_DEBUG_NUM
   | typeof LOG_LEVEL_INFO_NUM
@@ -33,6 +45,10 @@ export type LogLevelNum =
   | typeof LOG_LEVEL_EMERGENCY_NUM
   | typeof LOG_LEVEL_SILENT_NUM;
 
+/**
+ * Maps a level name, numeric string, or other string to the internal numeric severity.
+ * Unknown values default to **info** (1).
+ */
 export function parseLogLevel(level: LogLevel | LogLevelNum | string): number {
   switch (level) {
     case LOG_LEVEL_DEBUG:
@@ -64,7 +80,7 @@ export function parseLogLevel(level: LogLevel | LogLevelNum | string): number {
   }
 }
 
-// Internal log level state (defaults to INFO)
+/** Current minimum level to record; messages below this are dropped. Defaults to info. */
 let logLevel: number = parseLogLevel(LOG_LEVEL_INFO);
 
 /**
@@ -94,11 +110,12 @@ interface LogQueueItem {
 }
 
 const logQueue: LogQueueItem[] = [];
-let queueTimer: NodeJS.Timeout | null = null;
+let queueTimer: ReturnType<typeof setTimeout> | null = null;
 const QUEUE_BATCH_TIME = 200; // Reduced from 500ms to 200ms for faster processing
 const MAX_QUEUE_SIZE = 20; // Increased from 10 to 20 for better batching
 let currentQueueLevel: number | null = null;
 
+/** Sends queued lines as one `customScript.log` call and clears the queue. */
 function flushLogQueue() {
   if (logQueue.length === 0) {
     return;
@@ -121,6 +138,7 @@ function flushLogQueue() {
   }
 }
 
+/** Appends a line; may flush first if the new level differs from queued messages. */
 function addToQueue(message: string, level: number) {
   // If queue has different level, flush existing messages
   if (currentQueueLevel !== null && currentQueueLevel !== level) {
@@ -153,6 +171,13 @@ function addToQueue(message: string, level: number) {
   }, QUEUE_BATCH_TIME);
 }
 
+/**
+ * Queues a message if its level is at or above {@link getLogLevel}. Levels above
+ * **warn** are clamped to warn for this path (use {@link error} for errors).
+ *
+ * When {@link log.PERFORMANCE} is true, each flushed batch appends timing since
+ * {@link log.startTime} was last read (ms, integer).
+ */
 export function log(
   message: string,
   level: number | string | LogLevel | LogLevelNum,
@@ -170,13 +195,32 @@ export function log(
   }
 }
 
+/** Baseline for {@link log} performance suffixes; updated when timing is read. */
 log.startTime = performance.now();
+/** When true, batched log output includes `+<n>ms` since the previous batch. */
 log.PERFORMANCE = false;
 
+/**
+ * Sets the performance mode for the logging system
+ * @param performance - Whether to enable performance mode
+ */
+export function setLogPerformance(performance: boolean) {
+  log.PERFORMANCE = performance;
+
+  if (performance) {
+    log.startTime = Date.now();
+  }
+}
+
+/** Milliseconds since last `startTime` tick (used when `PERFORMANCE` is on). */
 function getLogTime() {
   return (-log.startTime + (log.startTime = performance.now())) >> 0;
 }
 
+/**
+ * Reports a problem via `customScript.error` when the configured level allows **error**,
+ * or when `emergency` is true and the level allows **emergency**. Not batched.
+ */
 export function error(message: string, emergency?: boolean) {
   if (
     parseLogLevel(LOG_LEVEL_ERROR) >= logLevel ||

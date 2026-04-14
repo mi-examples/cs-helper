@@ -1,6 +1,7 @@
 dist
 node_modules
 metricinsights-cs-helper-*.tgz
+test-results
 
 .idea
 .vscode
