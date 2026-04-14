@@ -39,6 +39,9 @@ jobs:
           fi
           echo "Build verification passed"
 
+      - name: Test
+        run: npm test
+
       - name: Configure Git
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
