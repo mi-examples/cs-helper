@@ -1,3 +1,11 @@
+# [0.7.0-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.6.4...v0.7.0-beta.1) (2026-04-14)
+
+
+### Features
+
+* **api:** expand CustomScript type and logging utilities ([6b68353](https://github.com/mi-examples/cs-helper/commit/6b683530f5963d49b0d402472f026cc14ae9a044))
+* **create:** optional ai-addons copy and --ai flag ([abc0290](https://github.com/mi-examples/cs-helper/commit/abc029001364242bda80d50b34dd16ab53a3af7c))
+
 ## [0.6.4-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.6.3...v0.6.4-beta.1) (2026-04-03)
 
 
