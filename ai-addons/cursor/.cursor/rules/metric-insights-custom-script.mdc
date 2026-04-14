@@ -1,0 +1,53 @@
+---
+description: Metric Insights custom script runtime, logging, runApiRequest, token TTL / refresh (GET api/get_token)
+globs: src/**/*.js,src/**/*.ts,*.js,*.ts
+---
+
+# Metric Insights custom script (%PACKAGE_NAME%)
+
+Scaffolded with `cs-helper`. Build: `npm run build` → `dist/`. The build script uses `%V7%` in `package.json` when targeting v7 only.
+
+## Runtime
+
+### v6 (default; no `--v7` in build)
+
+- **PhantomJS** in Metric Insights.
+- Assume **legacy ES5-era** execution. The packager uses Babel **`targets: "ie 11"`** and webpack **`es5`**; **polyfills from the helper cover only a subset** (e.g. `Object.assign`, `Array.prototype.find`, `Promise`, `String.prototype.includes`). **Do not assume** full ES2015+ unless transpiled or polyfilled explicitly.
+
+### v7 (`--v7` build)
+
+- **Puppeteer** / modern Chromium in MI.
+- Babel **`chrome: 97`** + **core-js** (`useBuiltIns: "entry"`), webpack **`es2023`**. Modern JS is generally fine; align with current Chromium behavior.
+
+## Backend HTTP — `cs.runApiRequest`
+
+**Use `cs.runApiRequest(url, settings?)` for every MI backend HTTP call** (not raw `fetch` / XHR by default).
+
+- **Auth:** MI injects header **`token`:** same value as **`cs.apiToken`**. Do not set it manually for normal API use.
+- **Token TTL:** Server-configured; often **≥ ~5 minutes** in typical setups, but **verify** your policy. Long-running scripts should implement **refresh**: **`GET`** **`/api/get_token`** → JSON **`{ token: string; expires: string }`**, then continue API calls with refreshed credentials per your MI version (schedule using **`expires`**).
+- **Stack:** Wrapper over **jQuery.ajax** — **jQuery 1.2.x** on v6 (PhantomJS), **jQuery 3.x** on v7 (Puppeteer). **`settings`** = jQuery ajax options (`success`, `error`, `type`, `data`, …).
+- **URL:** Build from **`cs.homeSite`** or **`customScript.homeSite`** + API path (MI instance base + path). Example: `cs.homeSite.replace(/\/?$/, '/') + 'api/...'` then pass to `runApiRequest`.
+
+```javascript
+cs.runApiRequest(cs.homeSite.replace(/\/?$/, '/') + 'api/dataset_data?dataset=1', {
+  success: (data) => cs.log(JSON.stringify(data)),
+  error: (xhr, status, err) => cs.error(String(err || status)),
+});
+```
+
+### Optional: `Promise` wrapper
+
+- Define **`RequestParams`** (`type`, `headers`, `data`, … + index signature for other jQuery ajax fields).
+- Add **`joinHomeAndPath(path)`**: normalize **`cs.homeSite`** with a trailing slash, strip a leading slash from **`path`**, concatenate.
+- **`buildRequest(path, params)`** → **`new Promise`** and **`cs.runApiRequest(..., { ...params, success, error })`** — you must wire **`success`** / **`error`** or the Promise never settles.
+
+## Logging
+
+**Never rely on `console.*` for output users need to see** — it may run, but **results are not visible** in normal MI workflows.
+
+Use:
+
+- **`cs.log(...)`** from `@metricinsights/cs-helper`, or **`customScript.log(...)`**
+- **`import { log } from '@metricinsights/cs-helper/utils'`** for leveled logging (still goes through MI’s log path)
+
+Use **`cs.error`**, **`cs.result`**, and **`cs.close`** to finish. Always end runs with **`cs.close()`**; prefer wrapping it in **`setTimeout(..., 500)`** so MI can flush output. Use a **parameter-driven hang timeout**: read **`scriptTimeout`** (**milliseconds**) from script params and pass it to **`setTimeout`** so a stuck script **`cs.log`s** and then closes.
