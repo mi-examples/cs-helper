@@ -1,10 +1,12 @@
 {
   "compilerOptions": {
     "declaration": true,
+    "ignoreDeprecations": "6.0",
     "lib": ["es2015", "dom"],
     "module": "es2015",
     "moduleResolution": "node",
     "removeComments": true,
+    "rootDir": "./src",
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
