@@ -202,13 +202,13 @@ log.PERFORMANCE = false;
 
 /**
  * Sets the performance mode for the logging system
- * @param performance - Whether to enable performance mode
+ * @param usePerformance - Whether to enable performance mode
  */
-export function setLogPerformance(performance: boolean) {
-  log.PERFORMANCE = performance;
+export function setLogPerformance(usePerformance: boolean) {
+  log.PERFORMANCE = usePerformance;
 
-  if (performance) {
-    log.startTime = Date.now();
+  if (usePerformance) {
+    log.startTime = performance.now();
   }
 }
 
