@@ -23,6 +23,11 @@ Scaffolded with `cs-helper`. Build: `npm run build` → `dist/`. The build scrip
 
 **Use `cs.runApiRequest(url, settings?)` for every MI backend HTTP call** (not raw `fetch` / XHR by default).
 
+### Official MI API docs (partial)
+
+- Primary reference: **https://help.metricinsights.com/m/API_Access**
+- Treat this documentation as **incomplete**. Some endpoints, behavior details, and version-specific quirks may be missing. Validate with runtime responses and MI support/release notes when implementation details are unclear.
+
 - **Auth:** MI injects header **`token`:** same value as **`cs.apiToken`**. Do not set it manually for normal API use.
 - **Token TTL:** Server-configured; often **≥ ~5 minutes** in typical setups, but **verify** your policy. Long-running scripts should implement **refresh**: **`GET`** **`/api/get_token`** → JSON **`{ token: string; expires: string }`**, then continue API calls with refreshed credentials per your MI version (schedule using **`expires`**).
 - **Stack:** Wrapper over **jQuery.ajax** — **jQuery 1.2.x** on v6 (PhantomJS), **jQuery 3.x** on v7 (Puppeteer). **`settings`** = jQuery ajax options (`success`, `error`, `type`, `data`, …).

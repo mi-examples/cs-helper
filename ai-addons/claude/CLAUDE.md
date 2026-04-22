@@ -38,6 +38,11 @@ For failures, use **`cs.error(...)`** (and **`cs.result(...)`** / **`cs.close()`
 
 **Use `cs.runApiRequest(url, settings?)` (or `customScript.runApiRequest`) for all Metric Insights backend HTTP calls.** Do not use raw `fetch`, `XMLHttpRequest`, or manual AJAX for normal API access unless you have a rare, documented exception.
 
+### Official MI API docs (partial coverage)
+
+- Primary docs: **https://help.metricinsights.com/m/API_Access**
+- Coverage is **not complete**. Some endpoints/fields/edge-case behaviors may be undocumented; confirm with runtime API responses, your MI instance behavior, and release notes/support when needed.
+
 ### Authentication
 
 Metric Insights injects API authentication for you. Each request includes an HTTP header:
