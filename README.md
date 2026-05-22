@@ -354,3 +354,22 @@ This is my custom script description...
 
 ***** --------- *****
 ```
+
+## Maintainers: publishing to npm
+
+Production releases publish from [`.github/workflows/release.yml`](.github/workflows/release.yml) when a `v*` tag is pushed. Authentication uses [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC from GitHub Actions), not a long-lived `NPM_TOKEN`.
+
+### One-time setup on npmjs.com
+
+1. Open **@metricinsights/cs-helper** → **Settings** → **Trusted Publisher**.
+2. Choose **GitHub Actions** and configure:
+   - **Organization or user**: `mi-examples`
+   - **Repository**: `cs-helper`
+   - **Workflow filename**: `release.yml` (exact name, including `.yml`)
+3. After the first successful OIDC publish, consider **Publishing access** → **Require two-factor authentication and disallow tokens**, then revoke the old automation token from npm account settings.
+
+### Requirements
+
+- GitHub-hosted runners (self-hosted runners are not supported for trusted publishing).
+- Node.js **24** in the release workflow (npm ≥ 11.5.1 for OIDC).
+- `repository.url` in `package.json` must match `https://github.com/mi-examples/cs-helper`.
