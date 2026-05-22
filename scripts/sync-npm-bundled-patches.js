@@ -2,9 +2,9 @@
 
 /**
  * The `npm` package (pulled in by @semantic-release/npm) ships vulnerable
- * bundled copies of brace-expansion and picomatch. Overrides do not replace
- * bundleDependencies. After install, copy patched versions from the hoisted
- * tree into npm's nested node_modules so `npm audit` is clean.
+ * bundled copies of brace-expansion, picomatch, and ip-address. Overrides do
+ * not replace bundleDependencies. After install, copy patched versions from the
+ * hoisted tree into npm's nested node_modules so `npm audit` is clean.
  */
 const fs = require('fs');
 const path = require('path');
@@ -31,6 +31,26 @@ function findNpmInstallDir(startDir) {
   }
 }
 
+function readPackageVersion(packageDir) {
+  return JSON.parse(
+    fs.readFileSync(path.join(packageDir, 'package.json'), 'utf8'),
+  ).version;
+}
+
+function replaceBundledPackage(npmDir, packageName, srcDir) {
+  const dest = path.join(npmDir, 'node_modules', packageName);
+  const destParent = path.dirname(dest);
+
+  if (!fs.existsSync(destParent)) {
+    return null;
+  }
+
+  fs.rmSync(dest, { recursive: true, force: true });
+  fs.cpSync(srcDir, dest, { recursive: true });
+
+  return readPackageVersion(srcDir);
+}
+
 function main() {
   const npmDir = findNpmInstallDir(packageRoot);
 
@@ -40,6 +60,7 @@ function main() {
 
   let braceSrc;
   let picomatchSrc;
+  let ipAddressSrc;
 
   try {
     braceSrc = path.dirname(
@@ -48,15 +69,22 @@ function main() {
     picomatchSrc = path.dirname(
       require.resolve('picomatch/package.json', { paths: [packageRoot] }),
     );
+    ipAddressSrc = path.dirname(
+      require.resolve('ip-address/package.json', { paths: [packageRoot] }),
+    );
   } catch {
     return;
   }
 
-  const braceDest = path.join(npmDir, 'node_modules', 'brace-expansion');
+  const versions = {};
 
-  if (fs.existsSync(path.dirname(braceDest))) {
-    fs.rmSync(braceDest, { recursive: true, force: true });
-    fs.cpSync(braceSrc, braceDest, { recursive: true });
+  const braceVersion = replaceBundledPackage(
+    npmDir,
+    'brace-expansion',
+    braceSrc,
+  );
+  if (braceVersion) {
+    versions.braceExpansion = braceVersion;
   }
 
   const picomatchParent = path.join(
@@ -70,20 +98,23 @@ function main() {
   if (fs.existsSync(picomatchParent)) {
     fs.rmSync(picomatchDest, { recursive: true, force: true });
     fs.cpSync(picomatchSrc, picomatchDest, { recursive: true });
+    versions.picomatch = readPackageVersion(picomatchSrc);
   }
 
-  const braceVersion = JSON.parse(
-    fs.readFileSync(path.join(braceSrc, 'package.json'), 'utf8'),
-  ).version;
-  const picomatchVersion = JSON.parse(
-    fs.readFileSync(path.join(picomatchSrc, 'package.json'), 'utf8'),
-  ).version;
+  const ipAddressVersion = replaceBundledPackage(
+    npmDir,
+    'ip-address',
+    ipAddressSrc,
+  );
+  if (ipAddressVersion) {
+    versions.ipAddress = ipAddressVersion;
+  }
 
-  patchPackageLock(packageRoot, braceVersion, picomatchVersion);
+  patchPackageLock(packageRoot, versions);
 }
 
 /** npm audit reads package-lock.json; align bundled entry versions with on-disk copies. */
-function patchPackageLock(root, braceVersion, picomatchVersion) {
+function patchPackageLock(root, versions) {
   const lockPath = path.join(root, 'package-lock.json');
 
   if (!fs.existsSync(lockPath)) {
@@ -98,22 +129,24 @@ function patchPackageLock(root, braceVersion, picomatchVersion) {
     return;
   }
 
-  const braceKey = 'node_modules/npm/node_modules/brace-expansion';
-  const picomatchKey =
-    'node_modules/npm/node_modules/tinyglobby/node_modules/picomatch';
+  const lockPatches = [
+    ['node_modules/npm/node_modules/brace-expansion', versions.braceExpansion],
+    [
+      'node_modules/npm/node_modules/tinyglobby/node_modules/picomatch',
+      versions.picomatch,
+    ],
+    ['node_modules/npm/node_modules/ip-address', versions.ipAddress],
+  ];
 
   let changed = false;
 
-  if (pkgs[braceKey]) {
-    pkgs[braceKey].version = braceVersion;
-    changed = true;
+  for (const [key, version] of lockPatches) {
+    if (version && pkgs[key]) {
+      pkgs[key].version = version;
+      changed = true;
+    }
   }
 
-  if (pkgs[picomatchKey]) {
-    pkgs[picomatchKey].version = picomatchVersion;
-    changed = true;
-  }
-  
   if (changed) {
     fs.writeFileSync(lockPath, `${JSON.stringify(lock, null, 2)}\n`, 'utf8');
   }
