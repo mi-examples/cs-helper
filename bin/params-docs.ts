@@ -1,5 +1,6 @@
 const pathLib = require('path');
 const fs = require('fs');
+const { getGenericTypeDisplay } = require('./params-type-display');
 
 export type ParamRow = {
   name: string;
@@ -270,112 +271,6 @@ function getJSDocParamInfo(ts: any, decl: any): JSDocParamInfo {
 }
 
 /**
- * Maps a type to only generic primitive(s): string, number, boolean.
- * Used for the table Type column; object/custom types are not accepted.
- */
-function getGenericTypeDisplay(
-  checker: any,
-  type: any,
-  seen = new Set<number>(),
-): string {
-  if (!type) {
-    return 'any';
-  }
-
-  const id = type.id ?? type.flags;
-
-  if (id != null && seen.has(id)) {
-    return '';
-  }
-
-  if (id != null) {
-    seen.add(id);
-  }
-
-  const primitives = new Set<string>();
-  const add = (s: string) => s && primitives.add(s);
-
-  if (type.types && Array.isArray(type.types)) {
-    for (const t of type.types) {
-      const r = getGenericTypeDisplay(checker, t, seen);
-
-      if (r && r !== 'any') {
-        r.split(/\s*\|\s*/).forEach((p) => add(p.trim()));
-      }
-    }
-
-    const arr = [...primitives].sort();
-
-    return arr.length ? arr.join(' | ') : 'any';
-  }
-
-  if (type.value !== undefined && type.value !== null) {
-    const v = type.value;
-
-    if (typeof v === 'string') {
-      return 'string';
-    }
-
-    if (typeof v === 'number') {
-      return 'number';
-    }
-
-    if (v === true || v === false) {
-      return 'boolean';
-    }
-  }
-
-  if (type.flags != null) {
-    const f = type.flags;
-
-    if (f & 4) {
-      return 'string';
-    }
-
-    if (f & 8) {
-      return 'number';
-    }
-
-    if (f & 16) {
-      return 'boolean';
-    }
-  }
-
-  if (type.symbol && typeof checker.getDeclaredTypeOfSymbol === 'function') {
-    try {
-      const declared = checker.getDeclaredTypeOfSymbol(type.symbol);
-
-      if (declared && declared !== type) {
-        const r = getGenericTypeDisplay(checker, declared, seen);
-
-        if (r && r !== 'any') {
-          return r;
-        }
-      }
-    } catch {
-      //
-    }
-  }
-
-  if (typeof checker.typeToString === 'function') {
-    try {
-      const str = checker.typeToString(type).trim().toLowerCase();
-
-      if (str === 'boolean' || str === 'string' || str === 'number') {
-        return str;
-      }
-
-      if (str === 'true' || str === 'false') {
-        return 'boolean';
-      }
-    } catch {
-      //
-    }
-  }
-  return '';
-}
-
-/**
  * Collects literal values from a type (union of literals or type alias resolving to same).
  * Used to document "Can accept values: `a, b, c`" for enum-like params.
  */
@@ -482,7 +377,7 @@ function expandTypeToParamRows(
         const decl = sym.valueDeclaration || sym.declarations?.[0];
         const optional = !!(decl && decl.questionToken);
         const propType = checker.getTypeOfSymbolAtLocation(sym, typeNode);
-        let typeStr = getGenericTypeDisplay(checker, propType) || 'any';
+        let typeStr = getGenericTypeDisplay(ts, checker, propType) || 'any';
         const jsdoc = getJSDocParamInfo(ts, decl);
         if (jsdoc.password && typeStr === 'string') {
           typeStr = 'password';
@@ -503,7 +398,7 @@ function expandTypeToParamRows(
     const stringIndex = type.getStringIndexType?.();
 
     if (stringIndex) {
-      const typeStr = getGenericTypeDisplay(checker, stringIndex) || 'any';
+      const typeStr = getGenericTypeDisplay(ts, checker, stringIndex) || 'any';
 
       rows.push({
         name: '[key: string]',
@@ -516,7 +411,7 @@ function expandTypeToParamRows(
     const numberIndex = type.getNumberIndexType?.();
 
     if (numberIndex) {
-      const typeStr = getGenericTypeDisplay(checker, numberIndex) || 'any';
+      const typeStr = getGenericTypeDisplay(ts, checker, numberIndex) || 'any';
 
       rows.push({
         name: '[key: number]',
