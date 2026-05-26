@@ -1,3 +1,11 @@
+## [0.8.1-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.8.0...v0.8.1-beta.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* **params:** show optional number params as number in docs ([c0b8632](https://github.com/mi-examples/cs-helper/commit/c0b863207b053e8b5e3cdc1e38f89b21dfc8dd52))
+* **parseParams:** allow optional properties in generic constraint ([2580cdc](https://github.com/mi-examples/cs-helper/commit/2580cdc857d88153e215ff0cd8897050acee7c62))
+
 # [0.8.0-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.7.2...v0.8.0-beta.1) (2026-05-26)
 
 
