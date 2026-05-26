@@ -10,6 +10,21 @@ type ParametersType = Record<string, string | number | boolean>;
  */
 export type CustomScript = {
   /**
+   * Milliseconds since epoch (host clock) when the inactivity watchdog was last refreshed. The cs-helper
+   * wrapper updates this whenever it calls {@link CustomScript.updateHeartBeat}; you can read it to see how
+   * long the run has been idle. If it is not refreshed for too long, the host ends execution (typically
+   * after about one minute without {@link CustomScript.log | `log`}, API activity, or a manual heartbeat).
+   */
+  heartBeat: number;
+
+  /**
+   * `true` after {@link CustomScript.close} has run for this execution. The cs-helper wrapper sets this so
+   * further {@link CustomScript.log | `log`}, {@link CustomScript.runApiRequest | `runApiRequest`}, and
+   * heartbeat updates are no-ops and the run is not treated as still active.
+   */
+  isClosed: boolean;
+
+  /**
    * API token for the authenticated user/context running this script, as configured in Metric Insights.
    */
   apiToken: string;
@@ -65,6 +80,18 @@ export type CustomScript = {
 
     [key: string]: string | number | boolean;
   };
+
+  /**
+   * Refreshes the inactivity watchdog and sets {@link CustomScript.heartBeat} to the current time. If the
+   * watchdog fires without a refresh, the Metric Insights runtime ends the run as hung.
+   *
+   * When you build with the cs-helper CLI, the bundled wrapper calls this automatically on successful
+   * {@link CustomScript.runApiRequest | `runApiRequest`} completions, on {@link CustomScript.log | `log`},
+   * and while waiting for a slow API response. Long stretches with no logging, no API traffic, and no manual
+   * calls—pure computation, tight loops, or idle `setTimeout` chains—are not covered; call this yourself in
+   * those paths or the run is typically cut off after about one minute of inactivity.
+   */
+  updateHeartBeat: () => void;
 
   /**
    * Performs an HTTP request to the Metric Insights backend. The host attaches credentials and uses the platform

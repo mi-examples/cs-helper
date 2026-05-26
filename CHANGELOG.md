@@ -1,3 +1,16 @@
+# [0.8.0-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.7.2...v0.8.0-beta.1) (2026-05-26)
+
+
+### Bug Fixes
+
+* **build:** chmod cli bins for unix npm exec ([89e4209](https://github.com/mi-examples/cs-helper/commit/89e420952e520fd61c39e7bf37f106dd0d814289))
+
+
+### Features
+
+* **templates:** add scriptTimeout and scheduleClose scaffolds ([44175fc](https://github.com/mi-examples/cs-helper/commit/44175fc1f7ab2daba8eb53501ac2725b47f431b2))
+* **types:** add heartBeat, isClosed, and updateHeartBeat ([307a2e1](https://github.com/mi-examples/cs-helper/commit/307a2e148f0763ad43f92b289cf4ab0465dee7d5))
+
 # [0.7.0-beta.3](https://github.com/mi-examples/cs-helper/compare/v0.7.0-beta.2...v0.7.0-beta.3) (2026-04-14)
 
 

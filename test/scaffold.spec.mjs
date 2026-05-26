@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 
 /**
- * Basename of the copied pack artifact from `scripts/postbuild.js` (e.g. `metricinsights-cs-helper-latest.tgz`).
+ * Basename of the copied pack artifact from `scripts/postbuild.mjs` (e.g. `metricinsights-cs-helper-latest.tgz`).
  * Scaffold templates depend on `^%PLUGIN_VERSION%` from npm; unreleased versions are not on the registry, so
  * integration tests install from this local tarball instead (avoids ETARGET in CI).
  */
