@@ -128,6 +128,45 @@ const params = parseParams<{
 
 Only **`string`**, **`number`**, and **`boolean`** values are supported for parameter types (MI passes scalar values). At build time, the cs-helper CLI scans `parseParams` usage to generate the **Params Base64** banner block and the parameter tables in the [Build Output](#build-output) section—see **Params Base64** there for what is embedded.
 
+### Inactivity watchdog (`heartBeat` / `updateHeartBeat`)
+
+When you build with cs-helper, the bundled wrapper tracks script activity via **`cs.heartBeat`** and refreshes it automatically on successful **`cs.runApiRequest`**, on **`cs.log`**, and while waiting for a slow API response.
+
+If nothing refreshes the watchdog for too long (typically about **one minute**), Metric Insights ends the run as hung. Silent work does not count—tight loops, heavy computation, or long **`setTimeout`** chains without logging or API calls need an explicit **`cs.updateHeartBeat()`** every so often (for example once per loop iteration or every N seconds).
+
+```javascript
+for (let i = 0; i < items.length; i++) {
+  processItem(items[i]);
+  if (i % 100 === 0) {
+    cs.updateHeartBeat();
+  }
+}
+```
+
+### Finishing runs (`close`, `scriptTimeout`)
+
+Always end a run with **`cs.close()`** when work finishes (success or controlled failure). Schedule **`close`** inside a short **`setTimeout`** (for example **500–1000 ms**) so MI can flush **`cs.result`** and log lines first—see the scaffold templates for a **`scheduleClose()`** helper.
+
+Independently of the inactivity watchdog, keep a **maximum wall-clock limit** using a **`scriptTimeout`** parameter (**milliseconds**) and a safety timer started at load time. If **`main`** never completes, log and close:
+
+```javascript
+const params = parseParams({
+  scriptTimeout: 10 * 60 * 1000,
+});
+
+function scheduleClose() {
+  setTimeout(() => cs.close(), 1000);
+}
+
+setTimeout(() => {
+  if (cs.isClosed) return;
+  cs.log('Script exceeded scriptTimeout; closing.');
+  scheduleClose();
+}, params.scriptTimeout);
+```
+
+Tune **`scriptTimeout`** in Metric Insights per script; it should be longer than your expected happy path but short enough to avoid orphaned runs.
+
 ### Backend HTTP requests (`runApiRequest`)
 
 Use **`cs.runApiRequest(url, settings?)`** for Metric Insights backend APIs. The host injects API authentication and provides the transport layer. Build URLs from **`cs.homeSite`** (or **`customScript.homeSite`**) plus the API path—see the **Data convertor** example below.
