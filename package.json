@@ -7,8 +7,9 @@
   "scripts": {
     "postinstall": "node scripts/sync-npm-bundled-patches.js",
     "prepare": "node scripts/sync-npm-bundled-patches.js",
-    "build": "npm run build:sources && npm run build:bin",
-    "postbuild": "npm pack && node scripts/postbuild.js",
+    "clean:dist": "node scripts/clean-dist.cjs",
+    "build": "npm run clean:dist && npm run build:sources && npm run build:bin",
+    "postbuild": "npm pack && node scripts/postbuild.mjs",
     "build:sources": "tsc",
     "build:bin": "tsc --project tsconfig.bin.json",
     "test": "playwright test",
