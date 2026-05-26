@@ -132,11 +132,18 @@ function buildRequest<T extends {} = any>(
 }
 ```
 
+## Inactivity watchdog (`heartBeat` / `updateHeartBeat`)
+
+The cs-helper build wrapper refreshes **`cs.heartBeat`** on successful **`runApiRequest`**, on **`log`**, and while waiting for slow API responses. If the watchdog is not refreshed for too long (typically **~1 minute**), Metric Insights ends the run.
+
+- Call **`cs.updateHeartBeat()`** in long stretches with **no** logging and **no** API traffic (tight loops, heavy CPU work, idle timer chains).
+- This is **independent** of **`scriptTimeout`** (wall-clock max run time).
+
 ## Finishing the script (`cs.close`)
 
 - The script must end by calling **`cs.close()`** when work is done (success or controlled failure).
 - **Best practice:** schedule **`cs.close()` inside `setTimeout(..., 500)`** (e.g. a small `scheduleClose()` helper) so Metric Insights can flush **`cs.result`** / logs before teardown.
-- **Safety timeout:** keep a **maximum execution window** by passing **`scriptTimeout`** in **milliseconds** (ms) from script parameters and using e.g. `setTimeout(..., scriptTimeout)` so that if the script never finishes normally, you **`cs.log`** and then call **`cs.close()`** (again after the usual short delay), avoiding stuck runs.
+- **Safety timeout:** declare **`scriptTimeout`** (**milliseconds**) in **`parseParams`** and register a **load-time** `setTimeout(..., scriptTimeout)` that checks **`cs.isClosed`**, **`cs.log`s** if the run overran, then **`scheduleClose()`**—see the scaffold **`src/index.ts`**. Tune the value per script in MI.
 
 ## Project metadata
 

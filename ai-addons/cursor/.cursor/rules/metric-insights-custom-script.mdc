@@ -55,4 +55,11 @@ Use:
 - **`cs.log(...)`** from `@metricinsights/cs-helper`, or **`customScript.log(...)`**
 - **`import { log } from '@metricinsights/cs-helper/utils'`** for leveled logging (still goes through MI’s log path)
 
-Use **`cs.error`**, **`cs.result`**, and **`cs.close`** to finish. Always end runs with **`cs.close()`**; prefer wrapping it in **`setTimeout(..., 500)`** so MI can flush output. Use a **parameter-driven hang timeout**: read **`scriptTimeout`** (**milliseconds**) from script params and pass it to **`setTimeout`** so a stuck script **`cs.log`s** and then closes.
+Use **`cs.error`**, **`cs.result`**, and **`cs.close`** to finish. Always end runs with **`cs.close()`**; prefer wrapping it in **`setTimeout(..., 500)`** so MI can flush output. Use a **parameter-driven hang timeout**: read **`scriptTimeout`** (**milliseconds**) from script params and pass it to **`setTimeout`** so a stuck script **`cs.log`s** and then closes (guard with **`cs.isClosed`** before logging).
+
+## Inactivity watchdog (`heartBeat` / `updateHeartBeat`)
+
+The cs-helper build wrapper refreshes **`cs.heartBeat`** automatically on successful **`runApiRequest`**, on **`log`**, and during slow API waits. Without activity, the host typically ends the run after **~1 minute**.
+
+- **Long silent work** (CPU loops, batch processing without logging): call **`cs.updateHeartBeat()`** periodically.
+- **`scriptTimeout`** (ms) is a separate **wall-clock cap**—always register a load-time **`setTimeout(..., scriptTimeout)`** that logs and **`scheduleClose()`** if the script never finishes normally (see scaffold **`src/index.ts`**).
