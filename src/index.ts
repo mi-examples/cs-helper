@@ -3,6 +3,20 @@ import './polyfill';
 type ParametersType = Record<string, string | number | boolean>;
 
 /**
+ * Allowed value types for a single script parameter key (Metric Insights scalars).
+ * Optional properties on {@link parseParams} maps may be `undefined` before merge.
+ */
+export type ScriptParameterValue = string | number | boolean;
+
+/**
+ * Validates that each key on a {@link parseParams} map is a Metric Insights scalar
+ * (`string`, `number`, or `boolean`), including optional properties (`T[K]` may be `undefined`).
+ */
+export type ValidScriptParameters<T> = {
+  [K in keyof T]: [T[K]] extends [ScriptParameterValue | undefined] ? T[K] : never;
+};
+
+/**
  * Runtime surface injected by the Metric Insights custom script host. Your bundle runs with a global
  * **`customScript`** instance (see {@link cs}) exposing identity, configuration, logging, HTTP access, and lifecycle.
  *
@@ -162,11 +176,9 @@ export const cs = customScript;
  * @param defaultParams Default values for parameters when the host does not supply them. May be a partial map.
  * @returns The merged parameter object (`defaultParams` ⊕ `cs.parameters`).
  */
-export function parseParams<
-  T extends {
-    [K in keyof T]: T[K] extends string | number | boolean ? T[K] : never;
-  } = ParametersType,
->(defaultParams: Partial<T> = {}): T {
+export function parseParams<T extends ValidScriptParameters<T> = ParametersType>(
+  defaultParams: Partial<T> = {},
+): T {
   const params = Object.assign(
     {},
     defaultParams,
