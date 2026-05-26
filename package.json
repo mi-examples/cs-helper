@@ -11,7 +11,7 @@
     "build": "npm run clean:dist && npm run build:sources && npm run build:bin",
     "postbuild": "npm pack && node scripts/postbuild.mjs",
     "build:sources": "tsc",
-    "build:bin": "tsc --project tsconfig.bin.json",
+    "build:bin": "tsc --project tsconfig.bin.json && node scripts/chmod-bin.cjs",
     "test": "playwright test",
     "release": "semantic-release",
     "version": "npm version --commit-hooks false --git-tag-version false",
