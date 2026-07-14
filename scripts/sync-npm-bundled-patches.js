@@ -2,8 +2,9 @@
 
 /**
  * The `npm` package (pulled in by @semantic-release/npm) ships vulnerable
- * bundled copies of brace-expansion, picomatch, and ip-address. Overrides do
- * not replace bundleDependencies. After install, copy patched versions from the
+ * bundled copies of brace-expansion, picomatch, ip-address, tar, sigstore,
+ * @sigstore/core, and @sigstore/verify. Overrides do not replace
+ * bundleDependencies. After install, copy patched versions from the
  * hoisted tree into npm's nested node_modules so `npm audit` is clean.
  */
 const fs = require('fs');
@@ -58,56 +59,53 @@ function main() {
     return;
   }
 
-  let braceSrc;
-  let picomatchSrc;
-  let ipAddressSrc;
-
-  try {
-    braceSrc = path.dirname(
-      require.resolve('brace-expansion/package.json', { paths: [packageRoot] }),
-    );
-    picomatchSrc = path.dirname(
-      require.resolve('picomatch/package.json', { paths: [packageRoot] }),
-    );
-    ipAddressSrc = path.dirname(
-      require.resolve('ip-address/package.json', { paths: [packageRoot] }),
-    );
-  } catch {
-    return;
-  }
+  const simplePackages = [
+    ['brace-expansion', 'braceExpansion'],
+    ['ip-address', 'ipAddress'],
+    ['tar', 'tar'],
+    ['sigstore', 'sigstore'],
+    ['@sigstore/core', 'sigstoreCore'],
+    ['@sigstore/verify', 'sigstoreVerify'],
+  ];
 
   const versions = {};
 
-  const braceVersion = replaceBundledPackage(
-    npmDir,
-    'brace-expansion',
-    braceSrc,
-  );
-  if (braceVersion) {
-    versions.braceExpansion = braceVersion;
+  for (const [packageName, versionKey] of simplePackages) {
+    let src;
+
+    try {
+      src = path.dirname(
+        require.resolve(`${packageName}/package.json`, { paths: [packageRoot] }),
+      );
+    } catch {
+      continue;
+    }
+
+    const version = replaceBundledPackage(npmDir, packageName, src);
+    if (version) {
+      versions[versionKey] = version;
+    }
   }
 
-  const picomatchParent = path.join(
-    npmDir,
-    'node_modules',
-    'tinyglobby',
-    'node_modules',
-  );
-  const picomatchDest = path.join(picomatchParent, 'picomatch');
+  try {
+    const picomatchSrc = path.dirname(
+      require.resolve('picomatch/package.json', { paths: [packageRoot] }),
+    );
+    const picomatchParent = path.join(
+      npmDir,
+      'node_modules',
+      'tinyglobby',
+      'node_modules',
+    );
+    const picomatchDest = path.join(picomatchParent, 'picomatch');
 
-  if (fs.existsSync(picomatchParent)) {
-    fs.rmSync(picomatchDest, { recursive: true, force: true });
-    fs.cpSync(picomatchSrc, picomatchDest, { recursive: true });
-    versions.picomatch = readPackageVersion(picomatchSrc);
-  }
-
-  const ipAddressVersion = replaceBundledPackage(
-    npmDir,
-    'ip-address',
-    ipAddressSrc,
-  );
-  if (ipAddressVersion) {
-    versions.ipAddress = ipAddressVersion;
+    if (fs.existsSync(picomatchParent)) {
+      fs.rmSync(picomatchDest, { recursive: true, force: true });
+      fs.cpSync(picomatchSrc, picomatchDest, { recursive: true });
+      versions.picomatch = readPackageVersion(picomatchSrc);
+    }
+  } catch {
+    // Do not fail install if layout changes upstream
   }
 
   patchPackageLock(packageRoot, versions);
@@ -136,6 +134,10 @@ function patchPackageLock(root, versions) {
       versions.picomatch,
     ],
     ['node_modules/npm/node_modules/ip-address', versions.ipAddress],
+    ['node_modules/npm/node_modules/tar', versions.tar],
+    ['node_modules/npm/node_modules/sigstore', versions.sigstore],
+    ['node_modules/npm/node_modules/@sigstore/core', versions.sigstoreCore],
+    ['node_modules/npm/node_modules/@sigstore/verify', versions.sigstoreVerify],
   ];
 
   let changed = false;

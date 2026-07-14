@@ -72,9 +72,9 @@
   "license": "ISC",
   "overrides": {
     "node": ">=22.0.0",
-    "tar": ">=7.5.11",
+    "js-yaml": ">=4.2.0",
     "serialize-javascript": ">=7.0.3",
-    "undici": ">=7.24.0"
+    "undici": ">=8.5.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.59.1",
@@ -87,10 +87,12 @@
     "ip-address": "^10.2.0",
     "picomatch": "4.0.4",
     "prettier": "^3.8.3",
-    "semantic-release": "^25.0.3"
+    "semantic-release": "^25.0.3",
+    "sigstore": "^4.1.1",
+    "tar": "^7.5.16"
   },
   "dependencies": {
-    "@babel/core": "^7.29.0",
+    "@babel/core": "^7.29.7",
     "@babel/preset-env": "^7.29.2",
     "@babel/preset-typescript": "^7.28.5",
     "babel-loader": "^10.1.1",
