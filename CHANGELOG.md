@@ -1,3 +1,10 @@
+## [0.8.1-beta.2](https://github.com/mi-examples/cs-helper/compare/v0.8.1-beta.1...v0.8.1-beta.2) (2026-07-14)
+
+
+### Bug Fixes
+
+* **deps:** patch sigstore/tar/js-yaml/undici/[@babel-core](https://github.com/babel-core) vulnerabilities ([361c927](https://github.com/mi-examples/cs-helper/commit/361c927590490ad7b2f6ffd80647f643ded85b42))
+
 ## [0.8.1-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.8.0...v0.8.1-beta.1) (2026-05-26)
 
 
