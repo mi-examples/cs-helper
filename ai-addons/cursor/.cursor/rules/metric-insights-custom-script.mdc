@@ -1,6 +1,7 @@
 ---
 description: Metric Insights custom script runtime, logging, runApiRequest, token TTL / refresh (GET api/get_token)
 globs: src/**/*.js,src/**/*.ts,*.js,*.ts
+cs-helper-addon-version: %PLUGIN_VERSION%
 ---
 
 # Metric Insights custom script (%PACKAGE_NAME%)
@@ -18,6 +19,19 @@ Scaffolded with `cs-helper`. Build: `npm run build` → `dist/`. The build scrip
 
 - **Puppeteer** / modern Chromium in MI.
 - Babel **`chrome: 97`** + **core-js** (`useBuiltIns: "entry"`), webpack **`es2023`**. Modern JS is generally fine; align with current Chromium behavior.
+
+## Entity-page request context (`window.req`, `window.user`)
+
+Feature-detect both — neither is guaranteed present:
+
+- **`window.req?: string`** — only when invoked from an entity page request **and** the entity explicitly passes it through. Check `typeof window.req === 'string'`.
+- **`window.user?: CustomScriptRequestUser`** — only on MI **7.2.2+**. The user **making the request** through the custom script entity (e.g. viewing the entity page), **not** the user configured to run the script. Import `CustomScriptRequestUser` / `CustomScriptRequestUserGroup` from `@metricinsights/cs-helper` (`user_id`, `username`, `email`, `display_name`, `is_administrator`/`is_power_user`/`is_manage_pages_privilege` as `'Y' | 'N'`, `groups`, `attributes: unknown[]`).
+
+```typescript
+if (window.user) {
+  cs.log(`Requested by ${window.user.display_name}`);
+}
+```
 
 ## Backend HTTP — `cs.runApiRequest`
 
