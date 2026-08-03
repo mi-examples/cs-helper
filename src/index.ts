@@ -160,6 +160,55 @@ declare var customScript: CustomScript;
 export const cs = customScript;
 
 /**
+ * A group the {@link CustomScriptRequestUser} belongs to.
+ */
+export type CustomScriptRequestUserGroup = {
+  group_id: number;
+  name: string;
+  ldap_organizational_unit: string;
+};
+
+/**
+ * Shape of {@link Window.user | `window.user`}: the Metric Insights user who is **making the request**
+ * through the custom script entity (e.g. viewing the entity page)—not the user configured to run the
+ * script. Field shape matches the `user` property returned by the MI `/data/page/index/auth/info`
+ * endpoint, but the two are not the same value: `auth/info` reflects the caller's own session, while
+ * `window.user` reflects whoever triggered this particular script invocation. `attributes` holds custom
+ * user attributes configured on the MI instance; shape varies per instance, so it is left untyped here.
+ */
+export type CustomScriptRequestUser = {
+  user_id: number;
+  username: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  display_name: string;
+  is_administrator: 'Y' | 'N';
+  is_power_user: 'Y' | 'N';
+  is_manage_pages_privilege: 'Y' | 'N';
+  groups: CustomScriptRequestUserGroup[];
+  attributes: unknown[];
+};
+
+declare global {
+  interface Window {
+    /**
+     * Present **only** when the custom script is invoked from an entity page request, and only if that
+     * entity page explicitly passes it through—absent in every other invocation context (e.g. scheduled
+     * runs, digests). Do not assume it exists; check for `undefined` before use.
+     */
+    req?: string;
+
+    /**
+     * Present **only** on Metric Insights instances **7.2.2 and later**; absent on earlier versions and
+     * do not assume it exists. The requesting user for this custom script entity invocation—see
+     * {@link CustomScriptRequestUser} for details on what this represents.
+     */
+    user?: CustomScriptRequestUser;
+  }
+}
+
+/**
  * Resolves script parameters by merging runtime values from {@link CustomScript.parameters | `cs.parameters`}
  * with your defaults. Later sources win: values supplied in the Metric Insights UI (or host) override the same keys
  * in `defaultParams`.

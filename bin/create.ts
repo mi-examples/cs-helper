@@ -35,6 +35,8 @@ function replaceTemplateVar(
     .replace(getVarRegExp(name), value);
 }
 
+const aiAddonsUtil = require('./ai-addons') as typeof import('./ai-addons');
+
 (async function () {
   // @ts-ignore
   const { program, Option, Argument } = await import('commander');
@@ -156,13 +158,20 @@ function replaceTemplateVar(
     program.addOption(
       new Option(
         '--ai <tool>',
-        'Include AI assistant files from ai-addons (repeatable)',
+        'Include AI assistant files from ai-addons (repeatable). With --update-ai, selects which tools to refresh',
       )
         .choices(aiAddons)
         .argParser((value: string, previous: string[] | undefined) => [
           ...(previous ?? []),
           value,
         ]),
+    );
+
+    program.addOption(
+      new Option(
+        '--update-ai',
+        'Refresh AI assistant files (ai-addons/<tool>/) in an existing project instead of scaffolding a new one',
+      ),
     );
   }
 
@@ -183,9 +192,111 @@ function replaceTemplateVar(
         version?: string;
         v7?: boolean;
         ai?: string[];
+        updateAi?: boolean;
       };
 
       const destinationFolder = path.resolve(process.cwd(), destination);
+
+      const copyAiAddonFiles = (
+        addonName: string,
+        replaceMap: Record<string, string>,
+      ) => {
+        const addonDir = path.resolve(aiAddonsDirectory, addonName);
+
+        if (!existsSync(addonDir)) {
+          return;
+        }
+
+        copyFilesRecursive(addonDir, destinationFolder, (filepath) => {
+          if (isBinaryFileSync(filepath)) {
+            return true;
+          }
+
+          let fileContent = readFileSync(filepath, {
+            encoding: 'utf-8',
+            flag: 'r',
+          });
+
+          for (const [name, value] of Object.entries(replaceMap)) {
+            fileContent = replaceTemplateVar(fileContent, { name, value });
+          }
+
+          return fileContent;
+        });
+      };
+
+      if (opts.updateAi) {
+        const destPackageJsonPath = path.resolve(
+          destinationFolder,
+          'package.json',
+        );
+
+        if (!existsSync(destPackageJsonPath)) {
+          throw new Error(
+            `--update-ai must be run inside an existing project. No package.json found at "${destPackageJsonPath}"`,
+          );
+        }
+
+        const destPackageJson = JSON.parse(
+          readFileSync(destPackageJsonPath, { encoding: 'utf-8', flag: 'r' }),
+        );
+
+        const buildScript: string = destPackageJson.scripts?.build ?? '';
+
+        const replaceMap = {
+          '%PACKAGE_NAME%':
+            destPackageJson.name ?? path.basename(destinationFolder),
+          '%PACKAGE_VERSION%': destPackageJson.version ?? '1.0.0',
+          '%PACKAGE_DESCRIPTION%': destPackageJson.description ?? '',
+          '%V7%': buildScript.includes('--v7') ? ' --v7' : '',
+          '%PLUGIN_VERSION%': pluginPackageJson.version,
+        };
+
+        let updateAddons: string[];
+
+        if (opts.ai !== undefined) {
+          updateAddons = [...new Set(opts.ai)].filter((name) =>
+            aiAddons.includes(name),
+          );
+        } else {
+          updateAddons = aiAddons.filter((name) =>
+            aiAddonsUtil.isAiAddonPresent(destinationFolder, name),
+          );
+
+          if (updateAddons.length === 0 && process.stdin.isTTY) {
+            updateAddons =
+              (
+                (await prompts(
+                  {
+                    name: 'value',
+                    type: 'multiselect',
+                    message: 'Select AI assistant files to update:',
+                    choices: aiAddons.map((name) => ({
+                      title: name,
+                      value: name,
+                    })),
+                    hint: '- Space to select. Enter to confirm',
+                  },
+                  { onCancel },
+                )) as { value?: string[] }
+              ).value ?? [];
+          }
+        }
+
+        if (updateAddons.length === 0) {
+          throw new Error(
+            'No AI assistant files found to update. Pass --ai <tool> to specify which to refresh.',
+          );
+        }
+
+        for (const addonName of updateAddons) {
+          copyAiAddonFiles(addonName, replaceMap);
+        }
+
+        console.log(`AI assistant files updated: ${updateAddons.join(', ')}`);
+
+        return;
+      }
 
       if (existsSync(destinationFolder) && !dirIsEmpty(destinationFolder)) {
         throw new Error(
@@ -337,32 +448,7 @@ function replaceTemplateVar(
       );
 
       for (const addonName of selectedAiAddons) {
-        const addonDir = path.resolve(aiAddonsDirectory, addonName);
-
-        if (!existsSync(addonDir)) {
-          continue;
-        }
-
-        copyFilesRecursive(
-          addonDir,
-          destinationFolder,
-          (filepath) => {
-            if (isBinaryFileSync(filepath)) {
-              return true;
-            }
-
-            let fileContent = readFileSync(filepath, {
-              encoding: 'utf-8',
-              flag: 'r',
-            });
-
-            for (const [name, value] of Object.entries(replaceMap)) {
-              fileContent = replaceTemplateVar(fileContent, { name, value });
-            }
-
-            return fileContent;
-          },
-        );
+        copyAiAddonFiles(addonName, replaceMap);
       }
 
       console.log('Done!');

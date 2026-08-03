@@ -11,6 +11,7 @@ const {
 } = require('fs');
 const paramsDocs = require('./params-docs');
 const paramsBase64 = require('./params-base64');
+const aiAddons = require('./ai-addons');
 
 type Webpack = typeof import('webpack');
 
@@ -136,6 +137,27 @@ function parsePackageRepository(
     encoding: 'utf-8',
     flag: 'r',
   });
+
+  for (const check of aiAddons.checkAiAddonsFreshness(
+    process.cwd(),
+    helperPackage.version,
+  ) as import('./ai-addons').AiAddonCheck[]) {
+    if (check.status === 'ok') {
+      continue;
+    }
+
+    const detail =
+      check.status === 'stale'
+        ? `generated for cs-helper v${check.foundVersion}, installed v${helperPackage.version}`
+        : 'predates version tracking and may be out of date';
+
+    console.warn(
+      chalk.yellow(
+        `⚠ AI assistant file for "${check.name}" (${check.file}) is out of date (${detail}).\n` +
+          `  Run: npx cs-helper-create --update-ai --ai ${check.name} . to refresh it.`,
+      ),
+    );
+  }
 
   const presetEnv = V7
     ? {

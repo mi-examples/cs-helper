@@ -1,5 +1,7 @@
 # Metric Insights custom script — %PACKAGE_NAME%
 
+<!-- cs-helper-addon-version: %PLUGIN_VERSION% -->
+
 This repository is a **Metric Insights custom script** created with `@metricinsights/cs-helper`.
 
 ## Commands
@@ -21,6 +23,26 @@ The **`npm run build`** script passes `%V7%` (either nothing or ` --v7` for webp
 
 - **Runtime:** **Puppeteer** with a current Chromium stack (MI tracks updates).
 - **Language level:** Babel **`targets: { chrome: "97" }`** with **`useBuiltIns: "entry"`** and **core-js 3.x**, plus webpack **`target: ["web", "es2023"]`**. You can use modern JavaScript much more freely than on v6; still prefer patterns that match a recent Chromium.
+
+## Entity-page request context (`window.req`, `window.user`)
+
+Two globals are populated **conditionally**—always feature-detect before use, never assume either is present:
+
+- **`window.req?: string`** — present **only** when the custom script is invoked from an entity page request, and only if that entity page explicitly passes it through. Absent for scheduled runs, digests, and any entity page that doesn't pass it. Check `typeof window.req === 'string'` before use.
+- **`window.user?: CustomScriptRequestUser`** — present **only** on Metric Insights instances **7.2.2 and later** (absent on earlier versions, regardless of invocation context). This is the user **making the request** through the custom script entity (e.g. viewing the entity page)—**not** the user configured to run the script. `CustomScriptRequestUser` and `CustomScriptRequestUserGroup` are exported from `@metricinsights/cs-helper` (see `user_id`, `username`, `email`, `display_name`, `is_administrator`/`is_power_user`/`is_manage_pages_privilege` as `'Y' | 'N'`, `groups`, and an untyped `attributes: unknown[]`).
+
+```typescript
+import type { CustomScriptRequestUser } from '@metricinsights/cs-helper';
+
+if (typeof window.req === 'string') {
+  cs.log(`Entity request id: ${window.req}`);
+}
+
+if (window.user) {
+  const requestingUser: CustomScriptRequestUser = window.user;
+  cs.log(`Requested by ${requestingUser.display_name} (${requestingUser.email})`);
+}
+```
 
 ## Logging (important)
 
