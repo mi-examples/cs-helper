@@ -301,4 +301,67 @@ test.describe('project scaffold', () => {
       }
     });
   }
+
+  test('build warns on a stale ai-addon marker and stays silent when current', async () => {
+    test.setTimeout(300_000);
+
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'cs-helper-ai-build-warn-'));
+    const packageName = `ai-build-warn-${Date.now()}`;
+    const targetDir = path.join(tmpRoot, packageName);
+
+    try {
+      const scaffold = scaffoldProject({
+        targetDir,
+        template: 'custom-script-ts',
+        packageName,
+        description: 'ai build warning test',
+        version: '1.0.0',
+        v7: false,
+        ai: ['claude'],
+      });
+
+      expect(scaffold.status, `scaffold stderr: ${scaffold.stderr}\nstdout: ${scaffold.stdout}`).toBe(0);
+
+      useLocalCsHelperPack(targetDir);
+
+      const install = runNpmSync(['install', '--no-audit', '--fund=false'], {
+        cwd: targetDir,
+        encoding: 'utf8',
+      });
+
+      expect(install.status, `npm install stderr: ${install.stderr}\nstdout: ${install.stdout}`).toBe(0);
+
+      const entry = path.join('src', `${packageName}.ts`);
+      const buildScriptPath = path.join(repoRoot, 'dist', 'bin', 'build.js');
+
+      const cleanBuild = spawnSync(process.execPath, [buildScriptPath, entry], {
+        cwd: targetDir,
+        encoding: 'utf8',
+      });
+
+      expect(cleanBuild.status, `build stderr: ${cleanBuild.stderr}\nstdout: ${cleanBuild.stdout}`).toBe(0);
+      expect(`${cleanBuild.stdout}${cleanBuild.stderr}`).not.toContain('AI assistant file');
+
+      const claudeMdPath = path.join(targetDir, 'CLAUDE.md');
+      const staled = fs
+        .readFileSync(claudeMdPath, 'utf8')
+        .replace(/cs-helper-addon-version:\s*[^\s]+/, 'cs-helper-addon-version: 0.0.1');
+
+      fs.writeFileSync(claudeMdPath, staled);
+
+      const staleBuild = spawnSync(process.execPath, [buildScriptPath, entry], {
+        cwd: targetDir,
+        encoding: 'utf8',
+      });
+
+      expect(staleBuild.status, `build stderr: ${staleBuild.stderr}\nstdout: ${staleBuild.stdout}`).toBe(0);
+
+      const staleOutput = `${staleBuild.stdout}${staleBuild.stderr}`;
+
+      expect(staleOutput).toContain('AI assistant file for "claude"');
+      expect(staleOutput).toContain('--update-ai');
+    } finally {
+      fs.rmSync(tmpRoot, { recursive: true, force: true });
+    }
+  });
 });
