@@ -51,6 +51,12 @@ Uses the TypeScript compiler API to find every `parseParams` call in a consumer'
 
 Copies a template from `templates/<name>/` into a destination folder, replacing `%PACKAGE_NAME%`, `%PACKAGE_VERSION%`, `%PACKAGE_DESCRIPTION%`, `%V7%`, `%PLUGIN_VERSION%` placeholders in every non-binary file, then renames `index.{js,ts}` to `<packageName>.{js,ts}`. Optionally layers files from `ai-addons/<tool>/` (currently `cursor`, `claude`) on top with the same placeholder substitution — this is how generated projects get their own `.cursor/rules/` or `CLAUDE.md`. When editing `ai-addons/claude/CLAUDE.md`, remember it's a template for the *consumer's* repo (PhantomJS/Puppeteer version differences, `cs.log` vs `console.log`, `runApiRequest` auth/token-refresh, heartbeat/close lifecycle) — don't conflate its guidance with this repo's own build process.
 
+- **`--update-ai`**: refreshes ai-addon files in an already-scaffolded project in place (no template/package.json touched), instead of the normal empty-destination scaffold flow. Reads `name`/`version`/`description` from the target's existing `package.json` and infers `v7` from its `scripts.build`; auto-detects which addons to refresh (via `bin/ai-addons.ts`'s `isAiAddonPresent`) when `--ai` isn't given.
+
+### Ai-addon freshness (`bin/ai-addons.ts`)
+
+Each ai-addon file embeds a hidden `cs-helper-addon-version: %PLUGIN_VERSION%` marker (an HTML comment in `CLAUDE.md`, a frontmatter field in the `.mdc` rule) substituted at scaffold/update time. `bin/build.ts` calls `checkAiAddonsFreshness(cwd, installedVersion)` near the start of every build and prints a non-fatal `console.warn` when a consumer project's marker doesn't match the running cs-helper version (`'stale'`) or is missing entirely on a file cs-helper clearly generated (`'unknown'` — pre-marker-feature scaffold). `ADDON_FILES` in that module is the single source of truth mapping an addon name to its checked file path; add an entry there when a new `ai-addons/<tool>/` gets a file worth tracking.
+
 ## Release process
 
 - Two release channels via semantic-release (`.releaserc.json`, Angular commit preset): `main` (stable) and `develop` (`-beta.N` prerelease, `beta` channel). Workflows: `.github/workflows/release.yml` (main) and `release-beta.yml` (develop).
