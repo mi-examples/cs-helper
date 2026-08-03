@@ -1,3 +1,16 @@
+# [0.9.0-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.8.2...v0.9.0-beta.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* **deps:** patch brace-expansion/tar/js-yaml/fast-uri vulnerabilities ([637a854](https://github.com/mi-examples/cs-helper/commit/637a854fd3ac6735a5caa1877a4584c524c2fa2e))
+
+
+### Features
+
+* **create:** track ai-addon freshness and add --update-ai to refresh them ([eff5265](https://github.com/mi-examples/cs-helper/commit/eff52654fef8e36560e92eb26ea3d1c64c696792))
+* **types:** add window.req and window.user (CustomScriptRequestUser) globals ([8b1e341](https://github.com/mi-examples/cs-helper/commit/8b1e34118daecca0b9f6ee070b56c6f272c069de))
+
 ## [0.8.1-beta.2](https://github.com/mi-examples/cs-helper/compare/v0.8.1-beta.1...v0.8.1-beta.2) (2026-07-14)
 
 
