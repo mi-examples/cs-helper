@@ -1,3 +1,10 @@
+## [0.9.1-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.9.0...v0.9.1-beta.1) (2026-08-12)
+
+
+### Bug Fixes
+
+* **deps:** patch undici vulnerability ([efc88bf](https://github.com/mi-examples/cs-helper/commit/efc88bf76f27b8f81e94fd26ba9a782f20b5140c))
+
 # [0.9.0-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.8.2...v0.9.0-beta.1) (2026-08-03)
 
 
