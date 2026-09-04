@@ -110,6 +110,14 @@ npx cs-helper-create --update-ai --ai claude --ai cursor .
 - **`parse-params-non-scalar`** — a `parseParams<T>()` field that isn't `string | number | boolean` (MI only passes scalar values).
 - **`unguarded-window-context`** — `window.req`/`window.user` accessed without a feature-detection guard earlier in the file (info-level; both are only conditionally present).
 - **`v6-unsupported-builtin`** — when building for v6 (no `--v7`), APIs not covered by cs-helper's small manual polyfill set (e.g. `Array.from`, `Object.entries`, `String.prototype.padStart`).
+- **`manual-token-header-override`** — a hardcoded `token` header value, or a direct `cs.apiToken = ...` assignment. The injected token expires (~10 minutes on average); refresh it via `GET /api/get_token` instead of hardcoding it.
+- **`runapirequest-promise-missing-handler`** — a `new Promise((resolve, reject) => {...})` wrapping `cs.runApiRequest` that never calls one of `resolve`/`reject` — the promise may never settle.
+- **`require-heartbeat-in-long-loop`** — a `for`/`while`/`do`/`for-of`/`for-in` loop with no `cs.log`/`cs.runApiRequest`/`cs.updateHeartBeat` call inside it (only these refresh the ~1 minute inactivity watchdog).
+- **`missing-token-refresh-for-long-script`** (info) — repeated `cs.runApiRequest` calls inside a loop with no `GET /api/get_token` reference anywhere in the file.
+- **`node-only-api`** — `require('fs')` (or another Node builtin), `process.env`/`process.argv`, or `__dirname`/`__filename`; custom scripts run in the browser (PhantomJS/Puppeteer), not Node.
+- **`no-password-in-log`** — a `parseParams` field marked `@password` passed into `cs.log`/`cs.error`/`cs.result`/`console.*`.
+- **`v6-jquery-legacy-ajax-promise`** — `.done`/`.fail`/`.always` chained on `cs.runApiRequest(...)` under v6; v6's bundled jQuery 1.2.x doesn't return a Deferred/jqXHR object (added in jQuery 1.5).
+- **`no-eval`** — `eval(...)` or `new Function(...)`.
 
 Run the same checks on demand (e.g. in CI) without doing a full build:
 

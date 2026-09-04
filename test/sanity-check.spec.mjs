@@ -120,6 +120,98 @@ test.describe('runSanityChecks (unit)', () => {
 
     expect(ruleIds(v7Findings)).not.toContain('v6-unsupported-builtin');
   });
+
+  test('manual-token-header-override: flags a hardcoded token header/cs.apiToken assignment, not a variable', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+
+    const findings = runSanityChecks(fixture('manual-token-header.ts'));
+
+    expect(ruleIds(findings).filter((id) => id === 'manual-token-header-override')).toHaveLength(2);
+
+    const okFindings = runSanityChecks(fixture('token-via-variable-ok.ts'));
+
+    expect(ruleIds(okFindings)).not.toContain('manual-token-header-override');
+  });
+
+  test('runapirequest-promise-missing-handler: flags a Promise missing resolve or reject, not one with both', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+
+    const findings = runSanityChecks(fixture('promise-missing-handler.ts'));
+    const finding = findings.find((f) => f.ruleId === 'runapirequest-promise-missing-handler');
+
+    expect(finding).toBeDefined();
+    expect(finding.message).toContain('reject');
+
+    const okFindings = runSanityChecks(fixture('promise-with-both-handlers-ok.ts'));
+
+    expect(ruleIds(okFindings)).not.toContain('runapirequest-promise-missing-handler');
+  });
+
+  test('require-heartbeat-in-long-loop: flags a loop with no log/runApiRequest/updateHeartBeat call', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+
+    const findings = runSanityChecks(fixture('heartbeat-missing-in-loop.ts'));
+
+    expect(ruleIds(findings)).toContain('require-heartbeat-in-long-loop');
+
+    const okFindings = runSanityChecks(fixture('heartbeat-present-in-loop-ok.ts'));
+
+    expect(ruleIds(okFindings)).not.toContain('require-heartbeat-in-long-loop');
+  });
+
+  test('missing-token-refresh-for-long-script: flags repeated runApiRequest in a loop with no get_token reference', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+
+    const findings = runSanityChecks(fixture('missing-token-refresh.ts'));
+    const finding = findings.find((f) => f.ruleId === 'missing-token-refresh-for-long-script');
+
+    expect(finding).toBeDefined();
+    expect(finding.severity).toBe('info');
+
+    const okFindings = runSanityChecks(fixture('has-token-refresh-ok.ts'));
+
+    expect(ruleIds(okFindings)).not.toContain('missing-token-refresh-for-long-script');
+  });
+
+  test('node-only-api: flags require(nodeBuiltin), process.env, and __dirname', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+    const findings = runSanityChecks(fixture('node-only-api.ts'));
+
+    expect(ruleIds(findings).filter((id) => id === 'node-only-api').length).toBeGreaterThanOrEqual(3);
+  });
+
+  test('no-password-in-log: flags a password-typed param passed into cs.log, not one left unlogged', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+
+    const findings = runSanityChecks(fixture('password-in-log.ts'));
+    const finding = findings.find((f) => f.ruleId === 'no-password-in-log');
+
+    expect(finding).toBeDefined();
+    expect(finding.message).toContain('apiKey');
+
+    const okFindings = runSanityChecks(fixture('password-not-logged-ok.ts'));
+
+    expect(ruleIds(okFindings)).not.toContain('no-password-in-log');
+  });
+
+  test('v6-jquery-legacy-ajax-promise: flags .done/.fail chained on runApiRequest under v6, not v7', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+
+    const v6Findings = runSanityChecks(fixture('v6-jquery-legacy.ts'), { v7: false });
+
+    expect(ruleIds(v6Findings).filter((id) => id === 'v6-jquery-legacy-ajax-promise').length).toBeGreaterThanOrEqual(2);
+
+    const v7Findings = runSanityChecks(fixture('v6-jquery-legacy.ts'), { v7: true });
+
+    expect(ruleIds(v7Findings)).not.toContain('v6-jquery-legacy-ajax-promise');
+  });
+
+  test('no-eval: flags eval(...) and new Function(...)', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+    const findings = runSanityChecks(fixture('no-eval.ts'));
+
+    expect(ruleIds(findings).filter((id) => id === 'no-eval')).toHaveLength(2);
+  });
 });
 
 test.describe('cs-helper-check (CLI)', () => {
