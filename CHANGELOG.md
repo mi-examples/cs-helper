@@ -1,3 +1,18 @@
+# [0.10.0-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.9.1-beta.1...v0.10.0-beta.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* **deps:** resolve npm audit vulnerabilities ([6c0380a](https://github.com/mi-examples/cs-helper/commit/6c0380ac69db22996c3858938e271b3aedfb0060))
+* **sanity-check:** downgrade script-timeout-param to info, not required ([3741b21](https://github.com/mi-examples/cs-helper/commit/3741b21f35e4aed8a8909d8b4b42b7031982a90e))
+
+
+### Features
+
+* **params:** add Password/ScriptTimeout marker types + suggestedTimeoutMinutes ([a6310fa](https://github.com/mi-examples/cs-helper/commit/a6310fa2f6735ec834d3cccce3a7158446aea27c))
+* **sanity-check:** add 8 more rules (token, heartbeat, node-api, password, jquery, eval) ([35dd228](https://github.com/mi-examples/cs-helper/commit/35dd228be905192f2d663ceeaf4258a3edbcad13))
+* **sanity-check:** add sanity-check function for custom scripts ([e3baf03](https://github.com/mi-examples/cs-helper/commit/e3baf0372426dd07a832093323c1b95f3200685f))
+
 ## [0.9.1-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.9.0...v0.9.1-beta.1) (2026-08-12)
 
 
