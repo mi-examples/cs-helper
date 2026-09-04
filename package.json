@@ -73,9 +73,10 @@
   "overrides": {
     "node": ">=22.0.0",
     "js-yaml": ">=5.2.2",
-    "fast-uri": ">=3.1.4 <4.0.0",
+    "fast-uri": ">=3.1.6 <4.0.0",
     "serialize-javascript": ">=7.0.3",
-    "undici": ">=8.10.0"
+    "undici": ">=8.10.0",
+    "browserslist": ">=4.28.7"
   },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
@@ -86,7 +87,9 @@
     "@types/prompts": "^2.4.9",
     "brace-expansion": "^5.0.9",
     "ip-address": "^10.4.0",
+    "pacote": "^21.5.1",
     "picomatch": "4.0.5",
+    "postcss-selector-parser": "^7.1.6",
     "prettier": "^3.9.6",
     "semantic-release": "^25.0.8",
     "sigstore": "^4.1.1",
