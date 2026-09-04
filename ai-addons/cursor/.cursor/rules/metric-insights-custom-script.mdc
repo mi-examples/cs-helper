@@ -77,3 +77,4 @@ The cs-helper build wrapper refreshes **`cs.heartBeat`** automatically on succes
 
 - **Long silent work** (CPU loops, batch processing without logging): call **`cs.updateHeartBeat()`** periodically.
 - **`scriptTimeout`** (ms) is a separate **wall-clock cap**—always register a load-time **`setTimeout(..., scriptTimeout)`** that logs and **`scheduleClose()`** if the script never finishes normally (see scaffold **`src/index.ts`**).
+- **Native MI timeout (newer instances):** an admin-configured "Terminate run after" setting can also force-close the run (`customScript.result("run timed out")` then `customScript.close()`) independently of your code, after N minutes—not exposed to script code, so it doesn't replace a self-managed `scriptTimeout` for graceful handling.

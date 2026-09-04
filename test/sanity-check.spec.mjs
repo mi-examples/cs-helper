@@ -63,13 +63,13 @@ test.describe('runSanityChecks (unit)', () => {
     expect(ruleIds(findings)).not.toContain('require-cs-close');
   });
 
-  test('require-script-timeout-param: flags a parseParams<T>() call missing scriptTimeout', async () => {
+  test('script-timeout-param: flags (info-level) a parseParams<T>() call missing scriptTimeout', async () => {
     const { runSanityChecks } = await loadSanityCheckModule();
     const findings = runSanityChecks(fixture('missing-script-timeout.ts'));
-    const finding = findings.find((f) => f.ruleId === 'require-script-timeout-param');
+    const finding = findings.find((f) => f.ruleId === 'script-timeout-param');
 
     expect(finding).toBeDefined();
-    expect(finding.severity).toBe('warning');
+    expect(finding.severity).toBe('info');
   });
 
   test('raw-http-to-mi-backend: flags fetch(cs.homeSite + ...) but not a third-party URL', async () => {

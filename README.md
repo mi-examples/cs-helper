@@ -105,7 +105,7 @@ npx cs-helper-create --update-ai --ai claude --ai cursor .
 - **`no-console`** — `console.log/warn/error/info/debug(...)` output isn't visible in Metric Insights; use `cs.log(...)`/`cs.error(...)`.
 - **`require-cs-close`** — no `cs.close()` call found anywhere; every run must end by calling it.
 - **`cs-close-not-deferred`** — `cs.close()` called directly instead of inside a `setTimeout(...)` callback.
-- **`require-script-timeout-param`** — a `parseParams<T>()` call doesn't declare a `scriptTimeout` field.
+- **`script-timeout-param`** (info) — a `parseParams<T>()` call doesn't declare a `scriptTimeout` field. A self-managed timeout is still recommended for graceful handling, but not required — newer MI instances can enforce their own admin-configured "Terminate run after" wall-clock limit independently of script code.
 - **`raw-http-to-mi-backend`** — a raw `fetch`/`XMLHttpRequest`/`$.ajax` call whose URL clearly targets the MI backend (`cs.homeSite`, or a bare `/api/...` path); use `cs.runApiRequest` instead. Raw HTTP to third-party APIs is not flagged.
 - **`parse-params-non-scalar`** — a `parseParams<T>()` field that isn't `string | number | boolean` (MI only passes scalar values).
 - **`unguarded-window-context`** — `window.req`/`window.user` accessed without a feature-detection guard earlier in the file (info-level; both are only conditionally present).
@@ -232,6 +232,8 @@ setTimeout(() => {
 ```
 
 Tune **`scriptTimeout`** in Metric Insights per script; it should be longer than your expected happy path but short enough to avoid orphaned runs.
+
+**Native MI timeout (newer instances):** some Metric Insights versions add an admin-configured "Terminate run after" setting on the custom script itself. When set, MI enforces it independently of your code—after that many minutes it calls `customScript.result("run timed out")` then `customScript.close()`, and separately caps the underlying render. This value isn't exposed to script code (no parameter, no `cs`/`customScript` field carries it), so a self-managed `scriptTimeout` remains the only way to get graceful, script-specific handling before that harsher cutoff—but it's no longer strictly required to avoid an unbounded hung run.
 
 ### Backend HTTP requests (`runApiRequest`)
 

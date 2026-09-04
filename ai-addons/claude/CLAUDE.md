@@ -166,6 +166,7 @@ The cs-helper build wrapper refreshes **`cs.heartBeat`** on successful **`runApi
 - The script must end by calling **`cs.close()`** when work is done (success or controlled failure).
 - **Best practice:** schedule **`cs.close()` inside `setTimeout(..., 500)`** (e.g. a small `scheduleClose()` helper) so Metric Insights can flush **`cs.result`** / logs before teardown.
 - **Safety timeout:** declare **`scriptTimeout`** (**milliseconds**) in **`parseParams`** and register a **load-time** `setTimeout(..., scriptTimeout)` that checks **`cs.isClosed`**, **`cs.log`s** if the run overran, then **`scheduleClose()`**—see the scaffold **`src/index.ts`**. Tune the value per script in MI.
+- **Native MI timeout (newer instances):** some MI versions add an admin-configured "Terminate run after" setting on the script itself. When set, MI enforces it independently of your code (`customScript.result("run timed out")` then `customScript.close()` after N minutes)—this value is **not** exposed to script code, so it can't substitute for the self-managed `scriptTimeout` above if you want graceful, script-specific handling before that harsher cutoff.
 
 ## Project metadata
 

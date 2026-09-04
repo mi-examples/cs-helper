@@ -222,11 +222,16 @@ function ruleCsCloseNotDeferred(ctx: RuleContext): SanityCheckFinding[] {
 }
 
 /**
- * Long-running scripts need a scriptTimeout param plus a load-time safety setTimeout that
- * force-closes the run - see README.md "Finishing runs". This rule only checks the param is
- * declared; it can't verify the safety-timer wiring statically without excessive false positives.
+ * A self-managed scriptTimeout param + load-time safety setTimeout is still a good practice
+ * (graceful, script-specific handling before MI's own kill) - see README.md "Finishing runs".
+ * Not a hard requirement, though: newer Metric Insights instances can enforce their own
+ * admin-configured "Terminate run after" wall-clock limit independently of script code (calls
+ * customScript.result("run timed out") then customScript.close() after N minutes; this is
+ * server-side config, invisible to static analysis of the script source), so this is info-level,
+ * not a warning. This rule only checks the param is declared; it can't verify the safety-timer
+ * wiring statically without excessive false positives.
  */
-function ruleRequireScriptTimeoutParam(ctx: RuleContext): SanityCheckFinding[] {
+function ruleScriptTimeoutParam(ctx: RuleContext): SanityCheckFinding[] {
   const findings: SanityCheckFinding[] = [];
 
   for (const call of ctx.parseParamsCalls) {
@@ -237,10 +242,10 @@ function ruleRequireScriptTimeoutParam(ctx: RuleContext): SanityCheckFinding[] {
 
     if (!fieldNames.has('scriptTimeout')) {
       findings.push({
-        ruleId: 'require-script-timeout-param',
-        severity: 'warning',
+        ruleId: 'script-timeout-param',
+        severity: 'info',
         message:
-          'parseParams<T>() does not declare a scriptTimeout field. Add one and register a load-time safety setTimeout that force-closes the run if it is exceeded.',
+          "parseParams<T>() does not declare a scriptTimeout field. A self-managed timeout (declare scriptTimeout and register a load-time safety setTimeout) gives you graceful, script-specific handling before MI's own kill - recommended, but not required if you're relying on MI's admin-configured \"Terminate run after\" instance setting (where supported).",
         file: relativeFile(ctx, call.filePath),
         line: call.line,
       });
@@ -1202,7 +1207,7 @@ export function runSanityChecks(
     ...ruleNoConsole(ctx),
     ...ruleRequireCsClose(ctx),
     ...ruleCsCloseNotDeferred(ctx),
-    ...ruleRequireScriptTimeoutParam(ctx),
+    ...ruleScriptTimeoutParam(ctx),
     ...ruleRawHttpToMiBackend(ctx),
     ...ruleParseParamsNonScalar(ctx),
     ...ruleUnguardedWindowContext(ctx),
