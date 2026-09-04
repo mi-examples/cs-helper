@@ -1,4 +1,4 @@
-import { cs, parseParams } from '@metricinsights/cs-helper';
+import { cs, parseParams, ScriptTimeout } from '@metricinsights/cs-helper';
 
 const CLOSE_DELAY_MS = 1000;
 
@@ -6,7 +6,7 @@ const params = parseParams<{
   param1: string;
   param2: string;
   /** Maximum wall-clock time for this run (milliseconds). */
-  scriptTimeout: number;
+  scriptTimeout: ScriptTimeout;
 }>({
   param1: '',
   scriptTimeout: 10 * 60 * 1000,

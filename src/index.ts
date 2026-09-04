@@ -17,6 +17,31 @@ export type ValidScriptParameters<T> = {
 };
 
 /**
+ * Structurally identical to `string` at runtime and for type-checking - use it as a
+ * {@link parseParams} field's type to mark that field as a secret (e.g. rendered as a masked
+ * input in Metric Insights' script configuration UI). This is a pure marker for the cs-helper
+ * build tooling's static analysis, which recognizes it by name when it appears directly as a
+ * field's declared type; it does not change how the value behaves at runtime.
+ *
+ * JavaScript (JSDoc-typed) scripts cannot reference this type - use the `@password <fieldName>`
+ * JSDoc tag instead, next to your `@type` tag, e.g. `@password apiKey`.
+ */
+export type Password = string;
+
+/**
+ * Structurally identical to `number` at runtime and for type-checking - use it as a
+ * {@link parseParams} field's type to mark that field as this script's own wall-clock safety
+ * timeout (milliseconds), independent of what you name the field - see the README's "Finishing
+ * runs" section. The cs-helper build tooling recognizes it by name when it appears directly as a
+ * field's declared type and can surface a suggested timeout value from its default in the build
+ * banner's Params Base64 block.
+ *
+ * JavaScript (JSDoc-typed) scripts cannot reference this type - use the `@scriptTimeout
+ * <fieldName>` JSDoc tag instead, next to your `@type` tag, e.g. `@scriptTimeout scriptTimeout`.
+ */
+export type ScriptTimeout = number;
+
+/**
  * Runtime surface injected by the Metric Insights custom script host. Your bundle runs with a global
  * **`customScript`** instance (see {@link cs}) exposing identity, configuration, logging, HTTP access, and lifecycle.
  *

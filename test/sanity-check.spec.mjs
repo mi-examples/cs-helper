@@ -72,6 +72,21 @@ test.describe('runSanityChecks (unit)', () => {
     expect(finding.severity).toBe('info');
   });
 
+  test('script-timeout-param: a field typed ScriptTimeout satisfies it, regardless of the field name', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+    const findings = runSanityChecks(fixture('script-timeout-marker-ok.ts'));
+
+    expect(ruleIds(findings)).not.toContain('script-timeout-param');
+  });
+
+  test('JS scripts now get parse-params-non-scalar and no-password-in-log too (typeInfoTable was previously TS-only)', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+    const findings = runSanityChecks(fixture('js-typeinfo-rules.js'));
+
+    expect(ruleIds(findings)).toContain('parse-params-non-scalar');
+    expect(ruleIds(findings)).toContain('no-password-in-log');
+  });
+
   test('raw-http-to-mi-backend: flags fetch(cs.homeSite + ...) but not a third-party URL', async () => {
     const { runSanityChecks } = await loadSanityCheckModule();
 

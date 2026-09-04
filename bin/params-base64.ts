@@ -15,6 +15,14 @@ interface ParamsHashData {
   customScriptName?: string;
   isParametersRequired: boolean;
   parameters: ParamHash[];
+  /**
+   * Minutes, rounded, derived from a parseParams field marked `ScriptTimeout` (or
+   * `@scriptTimeout` in JS) whose default value is statically resolvable to a number of
+   * milliseconds - see src/index.ts's `ScriptTimeout` type. Omitted when no field is marked or
+   * its default isn't a resolvable number. Optional/additive - existing consumers of this JSON
+   * that don't know this key can ignore it.
+   */
+  suggestedTimeoutMinutes?: number;
 }
 
 /**
@@ -95,6 +103,7 @@ function generateParamsBase64(
   // Process all parseParams calls and collect parameters
   // If multiple parameters have the same name, the latest one wins
   const allParams = new Map<string, ParamHash>();
+  let suggestedTimeoutMinutes: number | undefined;
 
   for (const call of parseParamsCalls) {
     if (call.typeInfoTable && call.typeInfoTable.length > 0) {
@@ -115,11 +124,24 @@ function generateParamsBase64(
         if (!row.optional) {
           hashData.isParametersRequired = true;
         }
+
+        // Latest ScriptTimeout-marked field with a resolvable numeric (ms) default wins.
+        if (row.isScriptTimeout && row.name in call.defaultParams) {
+          const defaultMs = Number(call.defaultParams[row.name]);
+
+          if (Number.isFinite(defaultMs)) {
+            suggestedTimeoutMinutes = Math.round(defaultMs / 60000);
+          }
+        }
       }
     }
   }
 
   hashData.parameters = Array.from(allParams.values());
+
+  if (suggestedTimeoutMinutes !== undefined) {
+    hashData.suggestedTimeoutMinutes = suggestedTimeoutMinutes;
+  }
 
   return Buffer.from(JSON.stringify(hashData)).toString('base64');
 }

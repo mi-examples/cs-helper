@@ -174,6 +174,35 @@ const params = parseParams<{
 
 Only **`string`**, **`number`**, and **`boolean`** values are supported for parameter types (MI passes scalar values). At build time, the cs-helper CLI scans `parseParams` usage to generate the **Params Base64** banner block and the parameter tables in the [Build Output](#build-output) section—see **Params Base64** there for what is embedded.
 
+#### Marking special fields (`Password`, `ScriptTimeout`)
+
+Two exported types let the build tooling recognize a field's special role, independent of what you name it—structurally they're just `string`/`number`, so nothing changes at runtime:
+
+```typescript
+import { parseParams, Password, ScriptTimeout } from '@metricinsights/cs-helper';
+
+const params = parseParams<{
+  apiKey: Password; // rendered as a masked/secret input in MI's config UI
+  maxRuntimeMs: ScriptTimeout; // this script's wall-clock safety timeout - see "Finishing runs"
+}>({
+  maxRuntimeMs: 10 * 60 * 1000,
+});
+```
+
+- **`Password`** — marks a `string` field as a secret. (This replaces writing a bare `@password` JSDoc comment on the field, which still works but is easy to misread as just a description.)
+- **`ScriptTimeout`** — marks a `number` field as this script's own safety-timeout value (see [Finishing runs](#finishing-runs-close-scripttimeout)). The build uses its default value, when statically resolvable, to compute `suggestedTimeoutMinutes` in the Params Base64 block—see [Build Output](#build-output).
+
+**JavaScript** can't reference these types (no generics)—use the `@password <fieldName>` / `@scriptTimeout <fieldName>` JSDoc tags instead, alongside your `@type` tag:
+
+```javascript
+/**
+ * @type {{apiKey: string; maxRuntimeMs: number;}}
+ * @password apiKey
+ * @scriptTimeout maxRuntimeMs
+ */
+const params = parseParams({ maxRuntimeMs: 10 * 60 * 1000 });
+```
+
 ### Entity-page request context (`window.req`, `window.user`)
 
 Two globals may be available depending on how the script was invoked—always feature-detect before use, neither is guaranteed present:
@@ -231,7 +260,7 @@ setTimeout(() => {
 }, params.scriptTimeout);
 ```
 
-Tune **`scriptTimeout`** in Metric Insights per script; it should be longer than your expected happy path but short enough to avoid orphaned runs.
+Tune **`scriptTimeout`** in Metric Insights per script; it should be longer than your expected happy path but short enough to avoid orphaned runs. In TypeScript, type the field as **`ScriptTimeout`** (see [Marking special fields](#marking-special-fields-password-scripttimeout))—the build then surfaces its default in the Params Base64 block regardless of what you name the field.
 
 **Native MI timeout (newer instances):** some Metric Insights versions add an admin-configured "Terminate run after" setting on the custom script itself. When set, MI enforces it independently of your code—after that many minutes it calls `customScript.result("run timed out")` then `customScript.close()`, and separately caps the underlying render. This value isn't exposed to script code (no parameter, no `cs`/`customScript` field carries it), so a self-managed `scriptTimeout` remains the only way to get graceful, script-specific handling before that harsher cutoff—but it's no longer strictly required to avoid an unbounded hung run.
 
@@ -321,7 +350,7 @@ The built script includes a banner with metadata:
 
 - **Script source hash**: SHA-256 hash (first 16 hex chars) of the main file and all imported files (relative imports only). This helps verify the source code hasn't changed.
 - **Checksum**: SHA-256 hash (first 16 hex chars) of the built output file. To verify the built file hasn't been modified, replace the checksum value with `0000000000000000` in the banner, then hash the file; the result should match the stored checksum.
-- **Params Base64**: Base64-encoded JSON containing structured parameter metadata extracted from all `parseParams` calls in your code. This includes parameter names, types, default values, required flags, available values (for enum-like parameters), and descriptions. The encoded data can be decoded to access parameter information programmatically.
+- **Params Base64**: Base64-encoded JSON containing structured parameter metadata extracted from all `parseParams` calls in your code. This includes parameter names, types, default values, required flags, available values (for enum-like parameters), and descriptions. The encoded data can be decoded to access parameter information programmatically. When a field is marked `ScriptTimeout` (or `@scriptTimeout` in JS—see [Marking special fields](#marking-special-fields-password-scripttimeout)) and its default value is statically resolvable to a number of milliseconds, the payload also includes a top-level `suggestedTimeoutMinutes` (rounded minutes)—optional/additive, safe for existing consumers of this JSON to ignore if they don't use it.
 
 All metadata is included automatically in the banner when building your custom script.
 

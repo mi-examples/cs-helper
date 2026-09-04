@@ -27,7 +27,7 @@ type RuleContext = {
   fileAsts: Map<string, any>;
   parseParamsCalls: Array<{
     filePath: string;
-    typeInfoTable?: Array<{ name: string; typeStr: string }>;
+    typeInfoTable?: Array<{ name: string; typeStr: string; isScriptTimeout?: boolean }>;
     defaultParams: Record<string, any>;
     line: number;
   }>;
@@ -239,8 +239,9 @@ function ruleScriptTimeoutParam(ctx: RuleContext): SanityCheckFinding[] {
       ...(call.typeInfoTable?.map((row) => row.name) ?? []),
       ...Object.keys(call.defaultParams ?? {}),
     ]);
+    const hasMarkedField = (call.typeInfoTable ?? []).some((row) => row.isScriptTimeout);
 
-    if (!fieldNames.has('scriptTimeout')) {
+    if (!fieldNames.has('scriptTimeout') && !hasMarkedField) {
       findings.push({
         ruleId: 'script-timeout-param',
         severity: 'info',
