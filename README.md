@@ -98,6 +98,27 @@ npx cs-helper-create --update-ai --ai claude --ai cursor .
 
 `--update-ai` requires an existing `package.json` in the target directory (it reads `name`/`version`/`description` from it, so it doesn't prompt), and overwrites the selected tools' files in place.
 
+### Sanity checking custom scripts
+
+`npm run build` (`cs-helper <entry>`) statically analyzes your entry file (and its transitive relative imports) for common correctness issues and prints them as non-fatal warnings before compiling—your build never fails because of them. Checks include:
+
+- **`no-console`** — `console.log/warn/error/info/debug(...)` output isn't visible in Metric Insights; use `cs.log(...)`/`cs.error(...)`.
+- **`require-cs-close`** — no `cs.close()` call found anywhere; every run must end by calling it.
+- **`cs-close-not-deferred`** — `cs.close()` called directly instead of inside a `setTimeout(...)` callback.
+- **`require-script-timeout-param`** — a `parseParams<T>()` call doesn't declare a `scriptTimeout` field.
+- **`raw-http-to-mi-backend`** — a raw `fetch`/`XMLHttpRequest`/`$.ajax` call whose URL clearly targets the MI backend (`cs.homeSite`, or a bare `/api/...` path); use `cs.runApiRequest` instead. Raw HTTP to third-party APIs is not flagged.
+- **`parse-params-non-scalar`** — a `parseParams<T>()` field that isn't `string | number | boolean` (MI only passes scalar values).
+- **`unguarded-window-context`** — `window.req`/`window.user` accessed without a feature-detection guard earlier in the file (info-level; both are only conditionally present).
+- **`v6-unsupported-builtin`** — when building for v6 (no `--v7`), APIs not covered by cs-helper's small manual polyfill set (e.g. `Array.from`, `Object.entries`, `String.prototype.padStart`).
+
+Run the same checks on demand (e.g. in CI) without doing a full build:
+
+```shell
+npx cs-helper-check <path-to-entry.js> [--v7] [--format text|json]
+```
+
+Exits `1` if any `error`-severity finding exists, `0` otherwise. `--v7` is inferred from your `package.json`'s `build` script when omitted.
+
 **Example (non-interactive):**
 
 ```shell

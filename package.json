@@ -47,7 +47,8 @@
   },
   "bin": {
     "cs-helper": "dist/bin/build.js",
-    "cs-helper-create": "dist/bin/create.js"
+    "cs-helper-create": "dist/bin/create.js",
+    "cs-helper-check": "dist/bin/check.js"
   },
   "files": [
     "dist/",
