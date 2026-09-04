@@ -1,4 +1,14 @@
-import { cs, parseParams, ScriptTimeout } from '@metricinsights/cs-helper';
+// Mirrors templates/custom-script-ts/src/index.ts. Must always produce zero findings -
+// see test/sanity-check.spec.mjs's golden-path regression test.
+import { cs, parseParams } from '@metricinsights/cs-helper';
+
+// Mirrors @metricinsights/cs-helper's ScriptTimeout type, declared locally rather than imported:
+// this repo isn't installed as its own dependency, so a bare-specifier import wouldn't resolve
+// here (ScriptTimeout would fall back to 'any', wrongly tripping parse-params-non-scalar) - and a
+// *relative* import into ../../src/index would make getSourceFilesFromEntry treat cs-helper's own
+// internal source tree as part of this "entry file", which is wrong for a fixture representing a
+// consumer's custom script.
+type ScriptTimeout = number;
 
 const CLOSE_DELAY_MS = 1000;
 
@@ -33,9 +43,6 @@ async function main() {
       params.param2 ? `Your second parameter is ${params.param2}` : ''
     }`,
   );
-
-  // Long CPU-bound work with no cs.log / runApiRequest: call cs.updateHeartBeat() in the loop
-  // so the inactivity watchdog (~1 minute) does not end the run early.
 }
 
 main()

@@ -4,6 +4,7 @@ const CLOSE_DELAY_MS = 1000;
 
 /**
  * @type {{param1: string; param2?: string; scriptTimeout: number;}}
+ * @scriptTimeout scriptTimeout
  */
 const params = parseParams({
   param1: '',

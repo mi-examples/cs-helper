@@ -43,3 +43,47 @@ test('@password JSDoc maps string param type to password', async () => {
   expect(apiToken?.typeStr).toBe('password');
   expect(apiToken?.optional).toBe(true);
 });
+
+test('TS Password/ScriptTimeout marker types are detected by name, independent of field name', async () => {
+  const { analyzeParseParamsData } = await import(
+    pathToFileURL(path.join(repoRoot, 'dist/bin/params-docs.js')).href
+  );
+
+  const fixture = path.join(repoRoot, 'test-fixtures/marker-types.ts');
+  const [call] = analyzeParseParamsData(fixture);
+  const byName = Object.fromEntries(call.typeInfoTable.map((row) => [row.name, row]));
+
+  expect(byName.apiKey.typeStr).toBe('password');
+  expect(byName.maxRuntimeMs.typeStr).toBe('number');
+  expect(byName.maxRuntimeMs.isScriptTimeout).toBe(true);
+});
+
+test('JS @password/@scriptTimeout JSDoc tags build a real typeInfoTable (previously JS got none at all)', async () => {
+  const { analyzeParseParamsData } = await import(
+    pathToFileURL(path.join(repoRoot, 'dist/bin/params-docs.js')).href
+  );
+
+  const fixture = path.join(repoRoot, 'test-fixtures/marker-types.js');
+  const [call] = analyzeParseParamsData(fixture);
+
+  expect(call?.typeInfoTable).toBeDefined();
+
+  const byName = Object.fromEntries(call.typeInfoTable.map((row) => [row.name, row]));
+
+  expect(byName.param1.typeStr).toBe('string');
+  expect(byName.apiKey.typeStr).toBe('password');
+  expect(byName.maxRuntimeMs.typeStr).toBe('number');
+  expect(byName.maxRuntimeMs.isScriptTimeout).toBe(true);
+});
+
+test('JS @type {{...}} double-brace parsing does not leave a stray leading brace (regression)', async () => {
+  const { analyzeParseParams } = await import(
+    pathToFileURL(path.join(repoRoot, 'dist/bin/params-docs.js')).href
+  );
+
+  const fixture = path.join(repoRoot, 'templates/custom-script-js/src/index.js');
+  const banner = analyzeParseParams(fixture);
+
+  expect(banner).not.toContain('{param1');
+  expect(banner).toContain('| param1');
+});

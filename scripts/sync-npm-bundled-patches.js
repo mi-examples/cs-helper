@@ -3,9 +3,10 @@
 /**
  * The `npm` package (pulled in by @semantic-release/npm) ships vulnerable
  * bundled copies of brace-expansion, picomatch, ip-address, tar, sigstore,
- * @sigstore/core, and @sigstore/verify. Overrides do not replace
- * bundleDependencies. After install, copy patched versions from the
- * hoisted tree into npm's nested node_modules so `npm audit` is clean.
+ * @sigstore/core, @sigstore/verify, pacote, and postcss-selector-parser.
+ * Overrides do not replace bundleDependencies. After install, copy patched
+ * versions from the hoisted tree into npm's nested node_modules so
+ * `npm audit` is clean.
  */
 const fs = require('fs');
 const path = require('path');
@@ -66,6 +67,8 @@ function main() {
     ['sigstore', 'sigstore'],
     ['@sigstore/core', 'sigstoreCore'],
     ['@sigstore/verify', 'sigstoreVerify'],
+    ['pacote', 'pacote'],
+    ['postcss-selector-parser', 'postcssSelectorParser'],
   ];
 
   const versions = {};
@@ -138,6 +141,11 @@ function patchPackageLock(root, versions) {
     ['node_modules/npm/node_modules/sigstore', versions.sigstore],
     ['node_modules/npm/node_modules/@sigstore/core', versions.sigstoreCore],
     ['node_modules/npm/node_modules/@sigstore/verify', versions.sigstoreVerify],
+    ['node_modules/npm/node_modules/pacote', versions.pacote],
+    [
+      'node_modules/npm/node_modules/postcss-selector-parser',
+      versions.postcssSelectorParser,
+    ],
   ];
 
   let changed = false;
