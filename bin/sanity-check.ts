@@ -627,7 +627,16 @@ function ruleManualTokenHeaderOverride(ctx: RuleContext): SanityCheckFinding[] {
   return findings;
 }
 
-function containsIdentifierCall(ts: any, node: any, calleeText: string): boolean {
+/**
+ * True if `name` is referenced anywhere in `node`'s subtree - called directly (`resolve(x)`),
+ * passed by value as a callback (`{ success: resolve, error: reject }` - the standard
+ * cs.runApiRequest Promise-wrapper idiom - or `.then(resolve)`), or otherwise. Deliberately broad
+ * (any Identifier with matching text, not just call expressions): the goal is "was this ever used
+ * at all", not "was this specifically invoked as `name(...)` in the source text" - the latter
+ * false-positives on the pass-by-reference pattern, which is by far the more common one in
+ * practice.
+ */
+function containsIdentifierReference(ts: any, node: any, name: string): boolean {
   let found = false;
 
   function inner(n: any) {
@@ -635,7 +644,7 @@ function containsIdentifierCall(ts: any, node: any, calleeText: string): boolean
       return;
     }
 
-    if (ts.isCallExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === calleeText) {
+    if (ts.isIdentifier(n) && n.text === name) {
       found = true;
 
       return;
@@ -703,20 +712,22 @@ function ruleRunApiRequestPromiseMissingHandler(ctx: RuleContext): SanityCheckFi
         ) {
           const resolveParam = executor.parameters[0].name;
           const rejectParam = executor.parameters[1].name;
-          const resolveCalled =
-            ts.isIdentifier(resolveParam) && containsIdentifierCall(ts, executor.body, resolveParam.text);
-          const rejectCalled =
-            ts.isIdentifier(rejectParam) && containsIdentifierCall(ts, executor.body, rejectParam.text);
+          const resolveUsed =
+            ts.isIdentifier(resolveParam) &&
+            containsIdentifierReference(ts, executor.body, resolveParam.text);
+          const rejectUsed =
+            ts.isIdentifier(rejectParam) &&
+            containsIdentifierReference(ts, executor.body, rejectParam.text);
 
-          if (!resolveCalled || !rejectCalled) {
-            const missing = [!resolveCalled && 'resolve', !rejectCalled && 'reject']
+          if (!resolveUsed || !rejectUsed) {
+            const missing = [!resolveUsed && 'resolve', !rejectUsed && 'reject']
               .filter(Boolean)
               .join(' and ');
 
             findings.push({
               ruleId: 'runapirequest-promise-missing-handler',
               severity: 'warning',
-              message: `This Promise wraps cs.runApiRequest but never calls ${missing}(...) - the promise may never settle if that path is hit.`,
+              message: `This Promise wraps cs.runApiRequest but never references ${missing} - the promise may never settle if that code path is hit.`,
               file: relativeFile(ctx, filePath),
               line: getLine(sourceFile, node),
             });
@@ -773,9 +784,42 @@ function isLoopStatement(ts: any, node: any): boolean {
 }
 
 /**
+ * True if node's subtree contains any call/new expression - a loose proxy for "this loop does
+ * more than pure local arithmetic/assignment". A loop with zero calls at all (just index math,
+ * comparisons, assignments) is about as safe a bet as static analysis gets for "this won't run
+ * long enough to matter" - excluding those measurably cuts false positives on trivial loops
+ * (small in-memory array/map building, tight numeric loops, etc.), which vastly outnumber
+ * genuinely risky ones in real code.
+ */
+function subtreeContainsAnyCall(ts: any, node: any): boolean {
+  let found = false;
+
+  function inner(n: any) {
+    if (found || !n) {
+      return;
+    }
+
+    if (ts.isCallExpression(n) || ts.isNewExpression(n)) {
+      found = true;
+
+      return;
+    }
+
+    ts.forEachChild(n, inner);
+  }
+
+  inner(node);
+
+  return found;
+}
+
+/**
  * cs.heartBeat is only refreshed by cs.log, cs.runApiRequest, and cs.updateHeartBeat (see
  * README.md's "Inactivity watchdog") - a loop with none of these can silently trip the ~1 minute
- * watchdog. AST-only heuristic: doesn't know real iteration counts/durations.
+ * watchdog. AST-only heuristic: doesn't know real iteration counts/durations, so this can't tell
+ * "processes a huge API response" from "iterates a handful of items" - info-level, and collapsed
+ * to at most one finding per file (rather than one per loop) so a file with several such loops
+ * doesn't drown other findings in near-duplicate noise.
  */
 function ruleRequireHeartbeatInLongLoop(ctx: RuleContext): SanityCheckFinding[] {
   const { ts } = ctx;
@@ -788,22 +832,39 @@ function ruleRequireHeartbeatInLongLoop(ctx: RuleContext): SanityCheckFinding[] 
       continue;
     }
 
+    let firstRiskyLoop: any;
+    let riskyLoopCount = 0;
+
     function visit(node: any) {
-      if (isLoopStatement(ts, node) && node.statement && !subtreeRefreshesHeartbeat(ts, node.statement)) {
-        findings.push({
-          ruleId: 'require-heartbeat-in-long-loop',
-          severity: 'warning',
-          message:
-            'This loop has no cs.log/cs.runApiRequest/cs.updateHeartBeat call inside it. A long silent loop can trip the ~1 minute inactivity watchdog - call cs.updateHeartBeat() periodically.',
-          file: relativeFile(ctx, filePath),
-          line: getLine(sourceFile, node),
-        });
+      if (
+        isLoopStatement(ts, node) &&
+        node.statement &&
+        subtreeContainsAnyCall(ts, node.statement) &&
+        !subtreeRefreshesHeartbeat(ts, node.statement)
+      ) {
+        riskyLoopCount += 1;
+        firstRiskyLoop = firstRiskyLoop ?? node;
       }
 
       ts.forEachChild(node, visit);
     }
 
     visit(sourceFile);
+
+    if (firstRiskyLoop) {
+      const message =
+        riskyLoopCount > 1
+          ? `${riskyLoopCount} loops in this file have no cs.log/cs.runApiRequest/cs.updateHeartBeat call inside them. If any process a large collection or do otherwise heavy work, a long silent stretch can trip the ~1 minute inactivity watchdog - call cs.updateHeartBeat() periodically in those.`
+          : `A loop in this file has no cs.log/cs.runApiRequest/cs.updateHeartBeat call inside it. If it processes a large collection or does otherwise heavy work, a long silent stretch can trip the ~1 minute inactivity watchdog - call cs.updateHeartBeat() periodically in it.`;
+
+      findings.push({
+        ruleId: 'require-heartbeat-in-long-loop',
+        severity: 'info',
+        message,
+        file: relativeFile(ctx, filePath),
+        line: getLine(sourceFile, firstRiskyLoop),
+      });
+    }
   }
 
   return findings;

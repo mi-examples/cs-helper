@@ -162,16 +162,41 @@ test.describe('runSanityChecks (unit)', () => {
     expect(ruleIds(okFindings)).not.toContain('runapirequest-promise-missing-handler');
   });
 
-  test('require-heartbeat-in-long-loop: flags a loop with no log/runApiRequest/updateHeartBeat call', async () => {
+  test('runapirequest-promise-missing-handler: resolve/reject passed by reference (not called directly) still counts as used', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+    const findings = runSanityChecks(fixture('promise-pass-by-reference-ok.ts'));
+
+    expect(ruleIds(findings)).not.toContain('runapirequest-promise-missing-handler');
+  });
+
+  test('require-heartbeat-in-long-loop: flags (info-level) a loop that calls something with no log/runApiRequest/updateHeartBeat call', async () => {
     const { runSanityChecks } = await loadSanityCheckModule();
 
     const findings = runSanityChecks(fixture('heartbeat-missing-in-loop.ts'));
+    const finding = findings.find((f) => f.ruleId === 'require-heartbeat-in-long-loop');
 
-    expect(ruleIds(findings)).toContain('require-heartbeat-in-long-loop');
+    expect(finding).toBeDefined();
+    expect(finding.severity).toBe('info');
 
     const okFindings = runSanityChecks(fixture('heartbeat-present-in-loop-ok.ts'));
 
     expect(ruleIds(okFindings)).not.toContain('require-heartbeat-in-long-loop');
+  });
+
+  test('require-heartbeat-in-long-loop: a loop with no calls at all (pure computation) is not flagged', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+    const findings = runSanityChecks(fixture('heartbeat-pure-computation-ok.ts'));
+
+    expect(ruleIds(findings)).not.toContain('require-heartbeat-in-long-loop');
+  });
+
+  test('require-heartbeat-in-long-loop: multiple risky loops in one file collapse to a single finding', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+    const findings = runSanityChecks(fixture('heartbeat-multiple-loops.ts'));
+    const matches = findings.filter((f) => f.ruleId === 'require-heartbeat-in-long-loop');
+
+    expect(matches).toHaveLength(1);
+    expect(matches[0].message).toContain('3 loops');
   });
 
   test('missing-token-refresh-for-long-script: flags repeated runApiRequest in a loop with no get_token reference', async () => {
