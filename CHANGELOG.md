@@ -1,3 +1,10 @@
+# [0.10.0-beta.2](https://github.com/mi-examples/cs-helper/compare/v0.10.0-beta.1...v0.10.0-beta.2) (2026-09-05)
+
+
+### Bug Fixes
+
+* **sanity-check:** fix two false-positive-prone rules found on real scripts ([3969b07](https://github.com/mi-examples/cs-helper/commit/3969b073e8ebbd4f5a087bfcd8001def59b3ce0b))
+
 # [0.10.0-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.9.1-beta.1...v0.10.0-beta.1) (2026-09-04)
 
 
