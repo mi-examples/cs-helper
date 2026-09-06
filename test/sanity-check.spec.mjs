@@ -79,6 +79,19 @@ test.describe('runSanityChecks (unit)', () => {
     expect(ruleIds(findings)).not.toContain('script-timeout-param');
   });
 
+  test('script-timeout-param: checked across all parseParams calls in the file set, not each call independently', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+
+    const oneHasIt = runSanityChecks(fixture('multi-parseparams-one-has-timeout.ts'));
+
+    expect(ruleIds(oneHasIt)).not.toContain('script-timeout-param');
+
+    const noneHaveIt = runSanityChecks(fixture('multi-parseparams-none-have-timeout.ts'));
+    const matches = noneHaveIt.filter((f) => f.ruleId === 'script-timeout-param');
+
+    expect(matches).toHaveLength(1);
+  });
+
   test('JS scripts now get parse-params-non-scalar and no-password-in-log too (typeInfoTable was previously TS-only)', async () => {
     const { runSanityChecks } = await loadSanityCheckModule();
     const findings = runSanityChecks(fixture('js-typeinfo-rules.js'));

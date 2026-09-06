@@ -105,7 +105,7 @@ npx cs-helper-create --update-ai --ai claude --ai cursor .
 - **`no-console`** — `console.log/warn/error/info/debug(...)` output isn't visible in Metric Insights; use `cs.log(...)`/`cs.error(...)`.
 - **`require-cs-close`** — no `cs.close()` call found anywhere; every run must end by calling it.
 - **`cs-close-not-deferred`** — `cs.close()` called directly instead of inside a `setTimeout(...)` callback.
-- **`script-timeout-param`** (info) — a `parseParams<T>()` call doesn't declare a `scriptTimeout` field. A self-managed timeout is still recommended for graceful handling, but not required — newer MI instances can enforce their own admin-configured "Terminate run after" wall-clock limit independently of script code.
+- **`script-timeout-param`** (info) — none of the script's `parseParams<T>()` calls declare a `scriptTimeout` field (checked across the whole file set, so one call declaring it is enough even if others don't). A self-managed timeout is still recommended for graceful handling, but not required — newer MI instances can enforce their own admin-configured "Terminate run after" wall-clock limit independently of script code.
 - **`raw-http-to-mi-backend`** — a raw `fetch`/`XMLHttpRequest`/`$.ajax` call whose URL clearly targets the MI backend (`cs.homeSite`, or a bare `/api/...` path); use `cs.runApiRequest` instead. Raw HTTP to third-party APIs is not flagged.
 - **`parse-params-non-scalar`** — a `parseParams<T>()` field that isn't `string | number | boolean` (MI only passes scalar values).
 - **`unguarded-window-context`** — `window.req`/`window.user` accessed without a feature-detection guard earlier in the file (info-level; both are only conditionally present).

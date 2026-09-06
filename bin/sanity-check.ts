@@ -228,32 +228,39 @@ function ruleCsCloseNotDeferred(ctx: RuleContext): SanityCheckFinding[] {
  * admin-configured "Terminate run after" wall-clock limit independently of script code (calls
  * customScript.result("run timed out") then customScript.close() after N minutes; this is
  * server-side config, invisible to static analysis of the script source), so this is info-level,
- * not a warning. This rule only checks the param is declared; it can't verify the safety-timer
- * wiring statically without excessive false positives.
+ * not a warning. Checked across *all* parseParams calls in the file set (a script can have more
+ * than one, e.g. spread across an entry file and an imported module) - one call declaring
+ * scriptTimeout is enough for the whole script, so this only fires when none of them do; it
+ * doesn't otherwise verify the safety-timer wiring, to avoid excessive false positives.
  */
 function ruleScriptTimeoutParam(ctx: RuleContext): SanityCheckFinding[] {
-  const findings: SanityCheckFinding[] = [];
+  if (ctx.parseParamsCalls.length === 0) {
+    return [];
+  }
 
-  for (const call of ctx.parseParamsCalls) {
+  const hasScriptTimeoutAnywhere = ctx.parseParamsCalls.some((call) => {
     const fieldNames = new Set<string>([
       ...(call.typeInfoTable?.map((row) => row.name) ?? []),
       ...Object.keys(call.defaultParams ?? {}),
     ]);
     const hasMarkedField = (call.typeInfoTable ?? []).some((row) => row.isScriptTimeout);
 
-    if (!fieldNames.has('scriptTimeout') && !hasMarkedField) {
-      findings.push({
-        ruleId: 'script-timeout-param',
-        severity: 'info',
-        message:
-          "parseParams<T>() does not declare a scriptTimeout field. A self-managed timeout (declare scriptTimeout and register a load-time safety setTimeout) gives you graceful, script-specific handling before MI's own kill - recommended, but not required if you're relying on MI's admin-configured \"Terminate run after\" instance setting (where supported).",
-        file: relativeFile(ctx, call.filePath),
-        line: call.line,
-      });
-    }
+    return fieldNames.has('scriptTimeout') || hasMarkedField;
+  });
+
+  if (hasScriptTimeoutAnywhere) {
+    return [];
   }
 
-  return findings;
+  return [
+    {
+      ruleId: 'script-timeout-param',
+      severity: 'info',
+      message:
+        "None of this script's parseParams<T>() calls declare a scriptTimeout field. A self-managed timeout (declare scriptTimeout and register a load-time safety setTimeout) gives you graceful, script-specific handling before MI's own kill - recommended, but not required if you're relying on MI's admin-configured \"Terminate run after\" instance setting (where supported).",
+      file: relativeFile(ctx, ctx.entryFile),
+    },
+  ];
 }
 
 function containsHomeSiteReference(ts: any, node: any): boolean {
