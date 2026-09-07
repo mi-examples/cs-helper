@@ -169,6 +169,10 @@ The cs-helper build wrapper refreshes **`cs.heartBeat`** on successful **`runApi
 - **Secrets:** type a `parseParams` field as **`Password`** (structurally just `string`) instead of `string` to mark it as a secret in MI's config UI—clearer than the older **`@password`** JSDoc comment (which still works, and is the only option in JS: **`@password <fieldName>`** next to `@type`).
 - **Native MI timeout (newer instances):** some MI versions add an admin-configured "Terminate run after" setting on the script itself. When set, MI enforces it independently of your code (`customScript.result("run timed out")` then `customScript.close()` after N minutes)—this value is **not** exposed to script code, so it can't substitute for the self-managed `scriptTimeout` above if you want graceful, script-specific handling before that harsher cutoff.
 
+## Sanity-check warnings
+
+`npm run build` statically checks this file (and its imports) for the pitfalls above and prints them as non-fatal warnings, each tagged with a rule id (e.g. `no-console`, `require-cs-close`). If a specific warning is a deliberate, verified exception—not a bug—suppress it instead of leaving it to reappear on every build: `// cs-helper-disable-next-line <rule-id>` above the line, or `// cs-helper-disable-file <rule-id>` anywhere in the file to suppress it for the whole file. See `README.md`'s "Ignoring findings" section for the full syntax (same-line variant, no-args-suppresses-everything, and the project-wide `csHelperCheck.disable` package.json option).
+
 ## Project metadata
 
 - Package version: **%PACKAGE_VERSION%** — description: **%PACKAGE_DESCRIPTION%**.

@@ -17,6 +17,11 @@ export type RunSanityChecksOptions = {
   v7?: boolean;
   /** Base directory findings' `file` paths are made relative to. Defaults to process.cwd(). */
   projectRoot?: string;
+  /**
+   * Rule IDs to drop entirely, independent of `cs-helper-disable*` comments - config/CLI driven
+   * (see bin/build.ts's `csHelperCheck.disable` package.json read and bin/check.ts's --disable).
+   */
+  disabledRules?: string[];
 };
 
 type RuleContext = {
@@ -228,32 +233,39 @@ function ruleCsCloseNotDeferred(ctx: RuleContext): SanityCheckFinding[] {
  * admin-configured "Terminate run after" wall-clock limit independently of script code (calls
  * customScript.result("run timed out") then customScript.close() after N minutes; this is
  * server-side config, invisible to static analysis of the script source), so this is info-level,
- * not a warning. This rule only checks the param is declared; it can't verify the safety-timer
- * wiring statically without excessive false positives.
+ * not a warning. Checked across *all* parseParams calls in the file set (a script can have more
+ * than one, e.g. spread across an entry file and an imported module) - one call declaring
+ * scriptTimeout is enough for the whole script, so this only fires when none of them do; it
+ * doesn't otherwise verify the safety-timer wiring, to avoid excessive false positives.
  */
 function ruleScriptTimeoutParam(ctx: RuleContext): SanityCheckFinding[] {
-  const findings: SanityCheckFinding[] = [];
+  if (ctx.parseParamsCalls.length === 0) {
+    return [];
+  }
 
-  for (const call of ctx.parseParamsCalls) {
+  const hasScriptTimeoutAnywhere = ctx.parseParamsCalls.some((call) => {
     const fieldNames = new Set<string>([
       ...(call.typeInfoTable?.map((row) => row.name) ?? []),
       ...Object.keys(call.defaultParams ?? {}),
     ]);
     const hasMarkedField = (call.typeInfoTable ?? []).some((row) => row.isScriptTimeout);
 
-    if (!fieldNames.has('scriptTimeout') && !hasMarkedField) {
-      findings.push({
-        ruleId: 'script-timeout-param',
-        severity: 'info',
-        message:
-          "parseParams<T>() does not declare a scriptTimeout field. A self-managed timeout (declare scriptTimeout and register a load-time safety setTimeout) gives you graceful, script-specific handling before MI's own kill - recommended, but not required if you're relying on MI's admin-configured \"Terminate run after\" instance setting (where supported).",
-        file: relativeFile(ctx, call.filePath),
-        line: call.line,
-      });
-    }
+    return fieldNames.has('scriptTimeout') || hasMarkedField;
+  });
+
+  if (hasScriptTimeoutAnywhere) {
+    return [];
   }
 
-  return findings;
+  return [
+    {
+      ruleId: 'script-timeout-param',
+      severity: 'info',
+      message:
+        "None of this script's parseParams<T>() calls declare a scriptTimeout field. A self-managed timeout (declare scriptTimeout and register a load-time safety setTimeout) gives you graceful, script-specific handling before MI's own kill - recommended, but not required if you're relying on MI's admin-configured \"Terminate run after\" instance setting (where supported).",
+      file: relativeFile(ctx, ctx.entryFile),
+    },
+  ];
 }
 
 function containsHomeSiteReference(ts: any, node: any): boolean {
@@ -1235,6 +1247,125 @@ function ruleNoEval(ctx: RuleContext): SanityCheckFinding[] {
  * covers the safe, unambiguous case (a bare "/api/..." path, or one built from cs.homeSite).
  */
 
+type RuleSuppression = { all: boolean; rules: Set<string> };
+
+type FileSuppressions = {
+  lineSuppressions: Map<number, RuleSuppression>;
+  fileSuppression: RuleSuppression | null;
+};
+
+/**
+ * Extracts every comment in `text` via a real lexer (not a raw-text regex scan) so that `//` or
+ * `/*` occurring inside a string/template literal (e.g. `cs.homeSite + '/api/...'`, `'https://...'`
+ * - both extremely common in real custom scripts) is never mistaken for a comment. Passing
+ * skipTrivia: false makes the scanner return comment tokens instead of silently skipping them.
+ */
+function getCommentRanges(ts: any, text: string): Array<{ pos: number; end: number }> {
+  const scanner = ts.createScanner(ts.ScriptTarget.Latest, false, ts.LanguageVariant.Standard, text);
+  const ranges: Array<{ pos: number; end: number }> = [];
+
+  let kind = scanner.scan();
+
+  while (kind !== ts.SyntaxKind.EndOfFileToken) {
+    if (kind === ts.SyntaxKind.SingleLineCommentTrivia || kind === ts.SyntaxKind.MultiLineCommentTrivia) {
+      ranges.push({ pos: scanner.getTokenPos(), end: scanner.getTextPos() });
+    }
+
+    kind = scanner.scan();
+  }
+
+  return ranges;
+}
+
+const DIRECTIVE_RE = /^cs-helper-(disable-next-line|disable-line|disable-file)\b[ \t]*(.*)$/;
+
+/**
+ * Parses a `cs-helper-disable*` directive out of one comment's raw source text (delimiters
+ * included). Only the comment's first line is considered, so a directive can't be smuggled into
+ * the middle of an unrelated multi-line block comment.
+ */
+function parseDirectiveFromCommentText(rawCommentText: string): { kind: string; rules: string[] } | null {
+  const isBlock = rawCommentText.startsWith('/*');
+  const stripped = isBlock
+    ? rawCommentText.replace(/^\/\*+/, '').replace(/\*+\/$/, '')
+    : rawCommentText.replace(/^\/\/+/, '');
+  const firstLine = stripped.trim().split('\n')[0].trim();
+  const match = DIRECTIVE_RE.exec(firstLine);
+
+  if (!match) {
+    return null;
+  }
+
+  const rules = match[2]
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  return { kind: match[1], rules };
+}
+
+function mergeSuppression(existing: RuleSuppression | undefined, rules: string[]): RuleSuppression {
+  const merged = existing ?? { all: false, rules: new Set<string>() };
+
+  if (rules.length === 0) {
+    merged.all = true;
+  } else {
+    rules.forEach((r) => merged.rules.add(r));
+  }
+
+  return merged;
+}
+
+/**
+ * Builds one file's suppression index from its `cs-helper-disable*` comments - see the
+ * "Ignoring findings" section of README.md for the three directive forms.
+ */
+function buildFileSuppressions(ts: any, sourceFile: any): FileSuppressions {
+  const text = sourceFile.getFullText();
+  const lineSuppressions = new Map<number, RuleSuppression>();
+  let fileSuppression: RuleSuppression | null = null;
+
+  for (const range of getCommentRanges(ts, text)) {
+    const directive = parseDirectiveFromCommentText(text.slice(range.pos, range.end));
+
+    if (!directive) {
+      continue;
+    }
+
+    const commentLine = sourceFile.getLineAndCharacterOfPosition(range.pos).line + 1;
+
+    if (directive.kind === 'disable-file') {
+      fileSuppression = mergeSuppression(fileSuppression ?? undefined, directive.rules);
+    } else {
+      const targetLine = directive.kind === 'disable-next-line' ? commentLine + 1 : commentLine;
+
+      lineSuppressions.set(targetLine, mergeSuppression(lineSuppressions.get(targetLine), directive.rules));
+    }
+  }
+
+  return { lineSuppressions, fileSuppression };
+}
+
+function isSuppressed(fileSuppressions: FileSuppressions | undefined, ruleId: string, line?: number): boolean {
+  if (!fileSuppressions) {
+    return false;
+  }
+
+  if (fileSuppressions.fileSuppression && (fileSuppressions.fileSuppression.all || fileSuppressions.fileSuppression.rules.has(ruleId))) {
+    return true;
+  }
+
+  if (line !== undefined) {
+    const lineSuppression = fileSuppressions.lineSuppressions.get(line);
+
+    if (lineSuppression && (lineSuppression.all || lineSuppression.rules.has(ruleId))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 /**
  * Statically analyzes a custom script entry file (and its transitive relative imports) for common
  * correctness issues, following the conventions documented in README.md and ai-addons/claude/CLAUDE.md.
@@ -1284,7 +1415,27 @@ export function runSanityChecks(
     ...ruleNoEval(ctx),
   ];
 
-  findings.sort((a, b) => {
+  const suppressionsByFile = new Map<string, FileSuppressions>();
+
+  for (const filePath of sourceFiles) {
+    const sourceFile = fileAsts.get(filePath);
+
+    if (sourceFile) {
+      suppressionsByFile.set(relativeFile(ctx, filePath), buildFileSuppressions(ts, sourceFile));
+    }
+  }
+
+  const disabledRuleSet = new Set(options.disabledRules ?? []);
+
+  const filteredFindings = findings.filter((finding) => {
+    if (disabledRuleSet.has(finding.ruleId)) {
+      return false;
+    }
+
+    return !isSuppressed(suppressionsByFile.get(finding.file), finding.ruleId, finding.line);
+  });
+
+  filteredFindings.sort((a, b) => {
     if (a.file !== b.file) {
       return a.file.localeCompare(b.file);
     }
@@ -1292,7 +1443,7 @@ export function runSanityChecks(
     return (a.line ?? 0) - (b.line ?? 0);
   });
 
-  return findings;
+  return filteredFindings;
 }
 
 module.exports = { runSanityChecks };

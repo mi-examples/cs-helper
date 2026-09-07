@@ -105,7 +105,7 @@ npx cs-helper-create --update-ai --ai claude --ai cursor .
 - **`no-console`** — `console.log/warn/error/info/debug(...)` output isn't visible in Metric Insights; use `cs.log(...)`/`cs.error(...)`.
 - **`require-cs-close`** — no `cs.close()` call found anywhere; every run must end by calling it.
 - **`cs-close-not-deferred`** — `cs.close()` called directly instead of inside a `setTimeout(...)` callback.
-- **`script-timeout-param`** (info) — a `parseParams<T>()` call doesn't declare a `scriptTimeout` field. A self-managed timeout is still recommended for graceful handling, but not required — newer MI instances can enforce their own admin-configured "Terminate run after" wall-clock limit independently of script code.
+- **`script-timeout-param`** (info) — none of the script's `parseParams<T>()` calls declare a `scriptTimeout` field (checked across the whole file set, so one call declaring it is enough even if others don't). A self-managed timeout is still recommended for graceful handling, but not required — newer MI instances can enforce their own admin-configured "Terminate run after" wall-clock limit independently of script code.
 - **`raw-http-to-mi-backend`** — a raw `fetch`/`XMLHttpRequest`/`$.ajax` call whose URL clearly targets the MI backend (`cs.homeSite`, or a bare `/api/...` path); use `cs.runApiRequest` instead. Raw HTTP to third-party APIs is not flagged.
 - **`parse-params-non-scalar`** — a `parseParams<T>()` field that isn't `string | number | boolean` (MI only passes scalar values).
 - **`unguarded-window-context`** — `window.req`/`window.user` accessed without a feature-detection guard earlier in the file (info-level; both are only conditionally present).
@@ -118,6 +118,33 @@ npx cs-helper-create --update-ai --ai claude --ai cursor .
 - **`no-password-in-log`** — a `parseParams` field marked `@password` passed into `cs.log`/`cs.error`/`cs.result`/`console.*`.
 - **`v6-jquery-legacy-ajax-promise`** — `.done`/`.fail`/`.always` chained on `cs.runApiRequest(...)` under v6; v6's bundled jQuery 1.2.x doesn't return a Deferred/jqXHR object (added in jQuery 1.5).
 - **`no-eval`** — `eval(...)` or `new Function(...)`.
+
+#### Ignoring findings
+
+A finding can be a deliberate, verified exception (e.g. a third-party call the `raw-http-to-mi-backend` heuristic can't tell apart, or a loop you've confirmed is short enough to skip a heartbeat call). Suppress it inline, in a comment (either `//` or `/* */`):
+
+- **`cs-helper-disable-next-line [rule-id[, rule-id2, ...]]`** — suppresses finding(s) on the following line. No rule ids = suppress everything on that line.
+- **`cs-helper-disable-line [rule-id[, ...]]`** — suppresses finding(s) on the same line as the comment.
+- **`cs-helper-disable-file [rule-id[, ...]]`** — suppresses for the rest of that file, including file-level findings that carry no line at all (`require-cs-close`, `script-timeout-param`, `missing-token-refresh-for-long-script`). No rule ids = suppress everything in the file.
+
+```typescript
+// cs-helper-disable-next-line no-console
+console.log('deliberate - only visible during local debugging, stripped before release');
+```
+
+Each directive only applies to the file it's written in—a `cs-helper-disable-file` comment in an imported module doesn't affect the entry file or other imports. There's no ESLint-style ranged `/* cs-helper-enable */`—`cs-helper-disable-file` already covers "turn a rule off for this whole file".
+
+To turn a rule off across the whole project instead of per-line, add a `csHelperCheck.disable` array to `package.json`:
+
+```json
+{
+  "csHelperCheck": {
+    "disable": ["require-heartbeat-in-long-loop", "no-eval"]
+  }
+}
+```
+
+This applies to both `npm run build` and `cs-helper-check`. The standalone CLI also accepts an ad-hoc `--disable <rule-id[,rule-id2,...]>` flag (e.g. for a one-off CI run), which is unioned with the `package.json` list.
 
 Run the same checks on demand (e.g. in CI) without doing a full build:
 

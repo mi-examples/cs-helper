@@ -163,6 +163,7 @@ function parsePackageRepository(
   for (const finding of sanityCheck.runSanityChecks(filename, {
     v7: V7,
     projectRoot: process.cwd(),
+    disabledRules: packageFile.csHelperCheck?.disable,
   }) as import('./sanity-check').SanityCheckFinding[]) {
     const color =
       finding.severity === 'error'
