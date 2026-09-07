@@ -265,6 +265,60 @@ test.describe('runSanityChecks (unit)', () => {
 
     expect(ruleIds(findings).filter((id) => id === 'no-eval')).toHaveLength(2);
   });
+
+  test('cs-helper-disable-next-line: suppresses only the finding on the targeted line', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+    const findings = runSanityChecks(fixture('suppress-disable-next-line.ts'));
+    const consoleFindings = findings.filter((f) => f.ruleId === 'no-console');
+
+    expect(consoleFindings).toHaveLength(1);
+    expect(consoleFindings[0].message).toContain('console.log');
+    // the surviving finding is the second console.log call (line 8), not the suppressed first one (line 6)
+    expect(consoleFindings[0].line).toBe(8);
+  });
+
+  test('cs-helper-disable-line: suppresses only the finding on the same line as the comment', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+    const findings = runSanityChecks(fixture('suppress-disable-line.ts'));
+
+    expect(findings.filter((f) => f.ruleId === 'no-console')).toHaveLength(1);
+  });
+
+  test('cs-helper-disable-next-line with no rule ids suppresses every rule on that line', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+    const findings = runSanityChecks(fixture('suppress-disable-next-line-bare.ts'));
+
+    expect(ruleIds(findings)).not.toContain('no-console');
+    expect(ruleIds(findings)).not.toContain('no-eval');
+  });
+
+  test('cs-helper-disable-file <rule-id>: suppresses a file-level finding with no `line` (require-cs-close)', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+    const findings = runSanityChecks(fixture('suppress-disable-file-rule.ts'));
+
+    expect(ruleIds(findings)).not.toContain('require-cs-close');
+  });
+
+  test('cs-helper-disable-file with no rule ids suppresses every finding in the file', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+
+    expect(runSanityChecks(fixture('suppress-disable-file-all.ts'))).toEqual([]);
+  });
+
+  test('cs-helper-disable-next-line text inside a string literal is not treated as a real directive (regression)', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+    const findings = runSanityChecks(fixture('suppress-comment-in-string-regression.ts'));
+
+    expect(ruleIds(findings)).toContain('no-console');
+  });
+
+  test('disabledRules option drops a rule entirely, independent of comments', async () => {
+    const { runSanityChecks } = await loadSanityCheckModule();
+
+    const findings = runSanityChecks(fixture('no-console.ts'), { disabledRules: ['no-console'] });
+
+    expect(findings).toEqual([]);
+  });
 });
 
 test.describe('cs-helper-check (CLI)', () => {
@@ -301,5 +355,15 @@ test.describe('cs-helper-check (CLI)', () => {
     const findings = JSON.parse(run.stdout);
 
     expect(findings.some((f) => f.ruleId === 'v6-unsupported-builtin')).toBe(false);
+  });
+
+  test('--disable drops the listed rule ids entirely', () => {
+    const run = runCheckCli(['--format', 'json', '--disable', 'no-console', fixture('no-console.ts')]);
+
+    expect(run.status, `stderr: ${run.stderr}`).toBe(0);
+
+    const findings = JSON.parse(run.stdout);
+
+    expect(findings.some((f) => f.ruleId === 'no-console')).toBe(false);
   });
 });
