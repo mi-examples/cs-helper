@@ -149,7 +149,7 @@ const aiAddonsUtil = require('./ai-addons') as typeof import('./ai-addons');
     .addOption(new Option('-v, --version <version>', 'Package version'))
     .addOption(
       new Option(
-        '--v7, --version-7',
+        '--v7',
         'Create custom script for MI v7 (not compatible with v6)',
       ),
     );

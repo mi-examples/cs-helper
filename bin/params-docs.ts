@@ -9,6 +9,12 @@ export type ParamRow = {
   description: string;
   example?: string;
   acceptsValues?: string[];
+  /**
+   * True when this field is marked as the script's own wall-clock safety timeout - via the
+   * `ScriptTimeout` type (TS) or the `@scriptTimeout <fieldName>` JSDoc tag (TS or JS). See
+   * src/index.ts's `ScriptTimeout` type doc.
+   */
+  isScriptTimeout?: boolean;
 };
 
 export type ParseParamsCallInfo = {
@@ -146,10 +152,12 @@ type JSDocParamInfo = {
   description: string;
   example: string;
   password?: boolean;
+  scriptTimeout?: boolean;
 };
 
 /**
- * Parses JSDoc inner text (between /** and *\/) into description, @example / @default, and @password.
+ * Parses JSDoc inner text (between /** and *\/) into description, @example / @default, @password,
+ * and @scriptTimeout.
  */
 function parseJSDocInner(inner: string): JSDocParamInfo {
   const out: JSDocParamInfo = { description: '', example: '' };
@@ -171,6 +179,10 @@ function parseJSDocInner(inner: string): JSDocParamInfo {
 
   if (/@password\b/.test(inner)) {
     out.password = true;
+  }
+
+  if (/@scriptTimeout\b/.test(inner)) {
+    out.scriptTimeout = true;
   }
 
   return out;
@@ -330,6 +342,28 @@ function getAcceptableValues(
  * Uses TypeChecker to expand a type (including interfaces and intersections) into
  * rows with name, type, optional, and JSDoc description for table output.
  */
+/**
+ * True when `typeNode` is (or, for an optional `X | undefined` style field, contains) a type
+ * reference literally named `markerName` (e.g. `Password`/`ScriptTimeout` from src/index.ts).
+ * Purely syntactic - doesn't resolve aliases/imports - so it only catches direct usage
+ * (`field: Password`), same intentional limitation as the existing @password JSDoc detection.
+ */
+function typeNodeReferencesMarker(ts: any, typeNode: any, markerName: string): boolean {
+  if (!typeNode) {
+    return false;
+  }
+
+  if (ts.isTypeReferenceNode(typeNode) && ts.isIdentifier(typeNode.typeName) && typeNode.typeName.text === markerName) {
+    return true;
+  }
+
+  if (ts.isUnionTypeNode(typeNode)) {
+    return typeNode.types.some((t: any) => typeNodeReferencesMarker(ts, t, markerName));
+  }
+
+  return false;
+}
+
 function expandTypeToParamRows(
   ts: any,
   checker: any,
@@ -353,6 +387,7 @@ function expandTypeToParamRows(
       description: string,
       example?: string,
       acceptsValues?: string[],
+      isScriptTimeout?: boolean,
     ) => {
       if (seen.has(name)) {
         return;
@@ -366,6 +401,7 @@ function expandTypeToParamRows(
         description,
         example,
         acceptsValues,
+        isScriptTimeout: isScriptTimeout || undefined,
       });
     };
 
@@ -379,9 +415,16 @@ function expandTypeToParamRows(
         const propType = checker.getTypeOfSymbolAtLocation(sym, typeNode);
         let typeStr = getGenericTypeDisplay(ts, checker, propType) || 'any';
         const jsdoc = getJSDocParamInfo(ts, decl);
-        if (jsdoc.password && typeStr === 'string') {
+        const declaredTypeNode = decl?.type;
+        const isPasswordMarked =
+          jsdoc.password || typeNodeReferencesMarker(ts, declaredTypeNode, 'Password');
+        const isScriptTimeoutMarked =
+          jsdoc.scriptTimeout || typeNodeReferencesMarker(ts, declaredTypeNode, 'ScriptTimeout');
+
+        if (isPasswordMarked && typeStr === 'string') {
           typeStr = 'password';
         }
+
         const acceptsValues = getAcceptableValues(checker, propType);
 
         addProp(
@@ -391,6 +434,7 @@ function expandTypeToParamRows(
           jsdoc.description,
           jsdoc.example || undefined,
           acceptsValues.length > 0 ? acceptsValues : undefined,
+          isScriptTimeoutMarked && typeStr === 'number',
         );
       }
     }
@@ -673,6 +717,84 @@ function formatParamsTable(
   return table + paramsDesc;
 }
 
+const JS_KNOWN_SCALAR_TYPES = new Set(['string', 'number', 'boolean']);
+
+/**
+ * JS has no generics, so `parseParams(...)` calls describe their shape via a single
+ * `@type {{...}}` JSDoc tag instead of a real type - there's no per-property comment attachment
+ * point the way a TS type literal has. This builds a ParamRow[] out of that one flat type string
+ * (split on `;`, then each `name(?): type` on the first `:`; unrecognized types fall back to
+ * 'any', same convention as the TS path), then applies `@password <fieldName>` /
+ * `@scriptTimeout <fieldName>` tags found anywhere else in the same JSDoc block - JS's fallback
+ * for the TS-only `Password`/`ScriptTimeout` marker types (see src/index.ts).
+ */
+function buildParamRowsFromJsDocBlock(
+  typeContent: string,
+  blockText: string,
+): ParamRow[] | null {
+  const rows: ParamRow[] = [];
+
+  for (const rawSegment of typeContent.split(';')) {
+    const segment = rawSegment.trim();
+
+    if (!segment) {
+      continue;
+    }
+
+    const colonIndex = segment.indexOf(':');
+
+    if (colonIndex === -1) {
+      continue;
+    }
+
+    let name = segment.slice(0, colonIndex).trim();
+    const rawType = segment.slice(colonIndex + 1).trim();
+    const optional = name.endsWith('?');
+
+    if (optional) {
+      name = name.slice(0, -1).trim();
+    }
+
+    if (!name) {
+      continue;
+    }
+
+    const typeStr = JS_KNOWN_SCALAR_TYPES.has(rawType) ? rawType : 'any';
+
+    rows.push({ name, typeStr, optional, description: '' });
+  }
+
+  if (rows.length === 0) {
+    return null;
+  }
+
+  const passwordFields = new Set<string>();
+  const scriptTimeoutFields = new Set<string>();
+  const passwordTagRegex = /@password\s+(\S+)/g;
+  const scriptTimeoutTagRegex = /@scriptTimeout\s+(\S+)/g;
+  let tagMatch;
+
+  while ((tagMatch = passwordTagRegex.exec(blockText)) !== null) {
+    passwordFields.add(tagMatch[1]);
+  }
+
+  while ((tagMatch = scriptTimeoutTagRegex.exec(blockText)) !== null) {
+    scriptTimeoutFields.add(tagMatch[1]);
+  }
+
+  for (const row of rows) {
+    if (passwordFields.has(row.name) && row.typeStr === 'string') {
+      row.typeStr = 'password';
+    }
+
+    if (scriptTimeoutFields.has(row.name) && row.typeStr === 'number') {
+      row.isScriptTimeout = true;
+    }
+  }
+
+  return rows;
+}
+
 /**
  * Analyzes a single source file for parseParams usage. Returns structured call info.
  * When checker is provided, expands interface/intersection types into their properties.
@@ -688,16 +810,26 @@ function analyzeParseParamsInFile(
     options.program?.getSourceFile(resolvedPath) ??
     ts.createSourceFile(sourceFile, sourceCode, ts.ScriptTarget.Latest, true);
 
-  const jsDocMatches: Array<{ type: string; line: number }> = [];
-  const jsDocRegex = /\/\*\*[\s\S]*?\*\s*@type\s*\{([^}]+)\}[\s\S]*?\*\//g;
-  let jsDocMatch;
+  const jsDocMatches: Array<{ type: string; blockText: string; line: number }> = [];
+  const jsDocBlockRegex = /\/\*\*([\s\S]*?)\*\//g;
+  let jsDocBlockMatch;
 
-  while ((jsDocMatch = jsDocRegex.exec(sourceCode)) !== null) {
+  while ((jsDocBlockMatch = jsDocBlockRegex.exec(sourceCode)) !== null) {
+    const blockText = jsDocBlockMatch[1];
+    // Primary: cs-helper's own double-brace idiom (`@type {{a: string}}` - outer braces are the
+    // JSDoc tag delimiter, inner braces the object type). Fallback: a bare single-brace `@type`.
+    const typeMatch =
+      blockText.match(/@type\s*\{\{([\s\S]*?)\}\}/) || blockText.match(/@type\s*\{([^}]+)\}/);
+
+    if (!typeMatch) {
+      continue;
+    }
+
     const matchLine = sourceCode
-      .substring(0, jsDocMatch.index)
+      .substring(0, jsDocBlockMatch.index)
       .split('\n').length;
 
-    jsDocMatches.push({ type: jsDocMatch[1].trim(), line: matchLine });
+    jsDocMatches.push({ type: typeMatch[1].trim(), blockText, line: matchLine });
   }
 
   const parseParamsCalls: ParseParamsCallInfo[] = [];
@@ -715,7 +847,7 @@ function analyzeParseParamsInFile(
       const line =
         sourceFileObj.getLineAndCharacterOfPosition(node.pos).line + 1;
 
-      let closestJsDoc: { type: string; line: number } | undefined;
+      let closestJsDoc: { type: string; blockText: string; line: number } | undefined;
 
       for (const jsDoc of jsDocMatches) {
         if (jsDoc.line < line && jsDoc.line >= line - 5) {
@@ -769,6 +901,14 @@ function analyzeParseParamsInFile(
           .split(';')
           .map((prop) => `  ${prop.trim()}`)
           .join('\n');
+
+        if (closestJsDoc) {
+          const rows = buildParamRowsFromJsDocBlock(jsDocType, closestJsDoc.blockText);
+
+          if (rows) {
+            typeInfoTable = rows;
+          }
+        }
       }
 
       if (node.arguments.length > 0) {

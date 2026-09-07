@@ -1,3 +1,37 @@
+# [0.10.0-beta.3](https://github.com/mi-examples/cs-helper/compare/v0.10.0-beta.2...v0.10.0-beta.3) (2026-09-07)
+
+
+### Bug Fixes
+
+* **sanity-check:** check script-timeout-param across all parseParams calls ([926366b](https://github.com/mi-examples/cs-helper/commit/926366b603c961e1032242468e8221c68af23615))
+
+
+### Features
+
+* **sanity-check:** add rule suppression via comments and config ([4559b88](https://github.com/mi-examples/cs-helper/commit/4559b8866cedf7a21b27c99cab62fab641ed2485))
+
+# [0.10.0-beta.2](https://github.com/mi-examples/cs-helper/compare/v0.10.0-beta.1...v0.10.0-beta.2) (2026-09-05)
+
+
+### Bug Fixes
+
+* **sanity-check:** fix two false-positive-prone rules found on real scripts ([3969b07](https://github.com/mi-examples/cs-helper/commit/3969b073e8ebbd4f5a087bfcd8001def59b3ce0b))
+
+# [0.10.0-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.9.1-beta.1...v0.10.0-beta.1) (2026-09-04)
+
+
+### Bug Fixes
+
+* **deps:** resolve npm audit vulnerabilities ([6c0380a](https://github.com/mi-examples/cs-helper/commit/6c0380ac69db22996c3858938e271b3aedfb0060))
+* **sanity-check:** downgrade script-timeout-param to info, not required ([3741b21](https://github.com/mi-examples/cs-helper/commit/3741b21f35e4aed8a8909d8b4b42b7031982a90e))
+
+
+### Features
+
+* **params:** add Password/ScriptTimeout marker types + suggestedTimeoutMinutes ([a6310fa](https://github.com/mi-examples/cs-helper/commit/a6310fa2f6735ec834d3cccce3a7158446aea27c))
+* **sanity-check:** add 8 more rules (token, heartbeat, node-api, password, jquery, eval) ([35dd228](https://github.com/mi-examples/cs-helper/commit/35dd228be905192f2d663ceeaf4258a3edbcad13))
+* **sanity-check:** add sanity-check function for custom scripts ([e3baf03](https://github.com/mi-examples/cs-helper/commit/e3baf0372426dd07a832093323c1b95f3200685f))
+
 ## [0.9.1-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.9.0...v0.9.1-beta.1) (2026-08-12)
 
 

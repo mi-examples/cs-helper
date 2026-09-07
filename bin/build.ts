@@ -12,6 +12,7 @@ const {
 const paramsDocs = require('./params-docs');
 const paramsBase64 = require('./params-base64');
 const aiAddons = require('./ai-addons');
+const sanityCheck = require('./sanity-check');
 
 type Webpack = typeof import('webpack');
 
@@ -156,6 +157,24 @@ function parsePackageRepository(
         `⚠ AI assistant file for "${check.name}" (${check.file}) is out of date (${detail}).\n` +
           `  Run: npx cs-helper-create --update-ai --ai ${check.name} . to refresh it.`,
       ),
+    );
+  }
+
+  for (const finding of sanityCheck.runSanityChecks(filename, {
+    v7: V7,
+    projectRoot: process.cwd(),
+    disabledRules: packageFile.csHelperCheck?.disable,
+  }) as import('./sanity-check').SanityCheckFinding[]) {
+    const color =
+      finding.severity === 'error'
+        ? chalk.red
+        : finding.severity === 'warning'
+          ? chalk.yellow
+          : chalk.cyan;
+    const location = finding.line ? `:${finding.line}` : '';
+
+    console.warn(
+      color(`⚠ [${finding.ruleId}] ${finding.file}${location} — ${finding.message}`),
     );
   }
 

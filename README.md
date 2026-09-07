@@ -98,6 +98,62 @@ npx cs-helper-create --update-ai --ai claude --ai cursor .
 
 `--update-ai` requires an existing `package.json` in the target directory (it reads `name`/`version`/`description` from it, so it doesn't prompt), and overwrites the selected tools' files in place.
 
+### Sanity checking custom scripts
+
+`npm run build` (`cs-helper <entry>`) statically analyzes your entry file (and its transitive relative imports) for common correctness issues and prints them as non-fatal warnings before compiling—your build never fails because of them. Checks include:
+
+- **`no-console`** — `console.log/warn/error/info/debug(...)` output isn't visible in Metric Insights; use `cs.log(...)`/`cs.error(...)`.
+- **`require-cs-close`** — no `cs.close()` call found anywhere; every run must end by calling it.
+- **`cs-close-not-deferred`** — `cs.close()` called directly instead of inside a `setTimeout(...)` callback.
+- **`script-timeout-param`** (info) — none of the script's `parseParams<T>()` calls declare a `scriptTimeout` field (checked across the whole file set, so one call declaring it is enough even if others don't). A self-managed timeout is still recommended for graceful handling, but not required — newer MI instances can enforce their own admin-configured "Terminate run after" wall-clock limit independently of script code.
+- **`raw-http-to-mi-backend`** — a raw `fetch`/`XMLHttpRequest`/`$.ajax` call whose URL clearly targets the MI backend (`cs.homeSite`, or a bare `/api/...` path); use `cs.runApiRequest` instead. Raw HTTP to third-party APIs is not flagged.
+- **`parse-params-non-scalar`** — a `parseParams<T>()` field that isn't `string | number | boolean` (MI only passes scalar values).
+- **`unguarded-window-context`** — `window.req`/`window.user` accessed without a feature-detection guard earlier in the file (info-level; both are only conditionally present).
+- **`v6-unsupported-builtin`** — when building for v6 (no `--v7`), APIs not covered by cs-helper's small manual polyfill set (e.g. `Array.from`, `Object.entries`, `String.prototype.padStart`).
+- **`manual-token-header-override`** — a hardcoded `token` header value, or a direct `cs.apiToken = ...` assignment. The injected token expires (~10 minutes on average); refresh it via `GET /api/get_token` instead of hardcoding it.
+- **`runapirequest-promise-missing-handler`** — a `new Promise((resolve, reject) => {...})` wrapping `cs.runApiRequest` where `resolve`/`reject` are never referenced at all (called directly, or passed by value as a callback, e.g. `{ success: resolve, error: reject }`) — the promise may never settle.
+- **`require-heartbeat-in-long-loop`** (info) — a `for`/`while`/`do`/`for-of`/`for-in` loop that calls something but has no `cs.log`/`cs.runApiRequest`/`cs.updateHeartBeat` call inside it (only these refresh the ~1 minute inactivity watchdog). Loops with no calls at all (pure arithmetic/assignment) aren't flagged. Collapsed to one finding per file, not one per loop.
+- **`missing-token-refresh-for-long-script`** (info) — repeated `cs.runApiRequest` calls inside a loop with no `GET /api/get_token` reference anywhere in the file.
+- **`node-only-api`** — `require('fs')` (or another Node builtin), `process.env`/`process.argv`, or `__dirname`/`__filename`; custom scripts run in the browser (PhantomJS/Puppeteer), not Node.
+- **`no-password-in-log`** — a `parseParams` field marked `@password` passed into `cs.log`/`cs.error`/`cs.result`/`console.*`.
+- **`v6-jquery-legacy-ajax-promise`** — `.done`/`.fail`/`.always` chained on `cs.runApiRequest(...)` under v6; v6's bundled jQuery 1.2.x doesn't return a Deferred/jqXHR object (added in jQuery 1.5).
+- **`no-eval`** — `eval(...)` or `new Function(...)`.
+
+#### Ignoring findings
+
+A finding can be a deliberate, verified exception (e.g. a third-party call the `raw-http-to-mi-backend` heuristic can't tell apart, or a loop you've confirmed is short enough to skip a heartbeat call). Suppress it inline, in a comment (either `//` or `/* */`):
+
+- **`cs-helper-disable-next-line [rule-id[, rule-id2, ...]]`** — suppresses finding(s) on the following line. No rule ids = suppress everything on that line.
+- **`cs-helper-disable-line [rule-id[, ...]]`** — suppresses finding(s) on the same line as the comment.
+- **`cs-helper-disable-file [rule-id[, ...]]`** — suppresses for the rest of that file, including file-level findings that carry no line at all (`require-cs-close`, `script-timeout-param`, `missing-token-refresh-for-long-script`). No rule ids = suppress everything in the file.
+
+```typescript
+// cs-helper-disable-next-line no-console
+console.log('deliberate - only visible during local debugging, stripped before release');
+```
+
+Each directive only applies to the file it's written in—a `cs-helper-disable-file` comment in an imported module doesn't affect the entry file or other imports. There's no ESLint-style ranged `/* cs-helper-enable */`—`cs-helper-disable-file` already covers "turn a rule off for this whole file".
+
+To turn a rule off across the whole project instead of per-line, add a `csHelperCheck.disable` array to `package.json`:
+
+```json
+{
+  "csHelperCheck": {
+    "disable": ["require-heartbeat-in-long-loop", "no-eval"]
+  }
+}
+```
+
+This applies to both `npm run build` and `cs-helper-check`. The standalone CLI also accepts an ad-hoc `--disable <rule-id[,rule-id2,...]>` flag (e.g. for a one-off CI run), which is unioned with the `package.json` list.
+
+Run the same checks on demand (e.g. in CI) without doing a full build:
+
+```shell
+npx cs-helper-check <path-to-entry.js> [--v7] [--format text|json]
+```
+
+Exits `1` if any `error`-severity finding exists, `0` otherwise. `--v7` is inferred from your `package.json`'s `build` script when omitted.
+
 **Example (non-interactive):**
 
 ```shell
@@ -144,6 +200,35 @@ const params = parseParams<{
 ```
 
 Only **`string`**, **`number`**, and **`boolean`** values are supported for parameter types (MI passes scalar values). At build time, the cs-helper CLI scans `parseParams` usage to generate the **Params Base64** banner block and the parameter tables in the [Build Output](#build-output) section—see **Params Base64** there for what is embedded.
+
+#### Marking special fields (`Password`, `ScriptTimeout`)
+
+Two exported types let the build tooling recognize a field's special role, independent of what you name it—structurally they're just `string`/`number`, so nothing changes at runtime:
+
+```typescript
+import { parseParams, Password, ScriptTimeout } from '@metricinsights/cs-helper';
+
+const params = parseParams<{
+  apiKey: Password; // rendered as a masked/secret input in MI's config UI
+  maxRuntimeMs: ScriptTimeout; // this script's wall-clock safety timeout - see "Finishing runs"
+}>({
+  maxRuntimeMs: 10 * 60 * 1000,
+});
+```
+
+- **`Password`** — marks a `string` field as a secret. (This replaces writing a bare `@password` JSDoc comment on the field, which still works but is easy to misread as just a description.)
+- **`ScriptTimeout`** — marks a `number` field as this script's own safety-timeout value (see [Finishing runs](#finishing-runs-close-scripttimeout)). The build uses its default value, when statically resolvable, to compute `suggestedTimeoutMinutes` in the Params Base64 block—see [Build Output](#build-output).
+
+**JavaScript** can't reference these types (no generics)—use the `@password <fieldName>` / `@scriptTimeout <fieldName>` JSDoc tags instead, alongside your `@type` tag:
+
+```javascript
+/**
+ * @type {{apiKey: string; maxRuntimeMs: number;}}
+ * @password apiKey
+ * @scriptTimeout maxRuntimeMs
+ */
+const params = parseParams({ maxRuntimeMs: 10 * 60 * 1000 });
+```
 
 ### Entity-page request context (`window.req`, `window.user`)
 
@@ -202,7 +287,9 @@ setTimeout(() => {
 }, params.scriptTimeout);
 ```
 
-Tune **`scriptTimeout`** in Metric Insights per script; it should be longer than your expected happy path but short enough to avoid orphaned runs.
+Tune **`scriptTimeout`** in Metric Insights per script; it should be longer than your expected happy path but short enough to avoid orphaned runs. In TypeScript, type the field as **`ScriptTimeout`** (see [Marking special fields](#marking-special-fields-password-scripttimeout))—the build then surfaces its default in the Params Base64 block regardless of what you name the field.
+
+**Native MI timeout (newer instances):** some Metric Insights versions add an admin-configured "Terminate run after" setting on the custom script itself. When set, MI enforces it independently of your code—after that many minutes it calls `customScript.result("run timed out")` then `customScript.close()`, and separately caps the underlying render. This value isn't exposed to script code (no parameter, no `cs`/`customScript` field carries it), so a self-managed `scriptTimeout` remains the only way to get graceful, script-specific handling before that harsher cutoff—but it's no longer strictly required to avoid an unbounded hung run.
 
 ### Backend HTTP requests (`runApiRequest`)
 
@@ -290,7 +377,7 @@ The built script includes a banner with metadata:
 
 - **Script source hash**: SHA-256 hash (first 16 hex chars) of the main file and all imported files (relative imports only). This helps verify the source code hasn't changed.
 - **Checksum**: SHA-256 hash (first 16 hex chars) of the built output file. To verify the built file hasn't been modified, replace the checksum value with `0000000000000000` in the banner, then hash the file; the result should match the stored checksum.
-- **Params Base64**: Base64-encoded JSON containing structured parameter metadata extracted from all `parseParams` calls in your code. This includes parameter names, types, default values, required flags, available values (for enum-like parameters), and descriptions. The encoded data can be decoded to access parameter information programmatically.
+- **Params Base64**: Base64-encoded JSON containing structured parameter metadata extracted from all `parseParams` calls in your code. This includes parameter names, types, default values, required flags, available values (for enum-like parameters), and descriptions. The encoded data can be decoded to access parameter information programmatically. When a field is marked `ScriptTimeout` (or `@scriptTimeout` in JS—see [Marking special fields](#marking-special-fields-password-scripttimeout)) and its default value is statically resolvable to a number of milliseconds, the payload also includes a top-level `suggestedTimeoutMinutes` (rounded minutes)—optional/additive, safe for existing consumers of this JSON to ignore if they don't use it.
 
 All metadata is included automatically in the banner when building your custom script.
 
