@@ -1,3 +1,15 @@
+# [0.10.0-beta.3](https://github.com/mi-examples/cs-helper/compare/v0.10.0-beta.2...v0.10.0-beta.3) (2026-09-07)
+
+
+### Bug Fixes
+
+* **sanity-check:** check script-timeout-param across all parseParams calls ([926366b](https://github.com/mi-examples/cs-helper/commit/926366b603c961e1032242468e8221c68af23615))
+
+
+### Features
+
+* **sanity-check:** add rule suppression via comments and config ([4559b88](https://github.com/mi-examples/cs-helper/commit/4559b8866cedf7a21b27c99cab62fab641ed2485))
+
 # [0.10.0-beta.2](https://github.com/mi-examples/cs-helper/compare/v0.10.0-beta.1...v0.10.0-beta.2) (2026-09-05)
 
 
