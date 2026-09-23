@@ -302,10 +302,10 @@ Code sources:
           },
         },
         {
+          // All JS — the script's own files as well as node_modules — so a v6 build is ES5
+          // throughout. (This used to exclude everything *outside* node_modules, which left the
+          // script's own .js untranspiled: const/arrow functions reached PhantomJS as-is.)
           test: /\.[mc]?js$/,
-          exclude: {
-            not: [/node_modules/],
-          },
           use: {
             loader: 'babel-loader',
             options: {

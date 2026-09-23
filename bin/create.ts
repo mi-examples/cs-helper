@@ -40,12 +40,18 @@ const aiAddonsUtil = require('./ai-addons') as typeof import('./ai-addons');
 (async function () {
   // @ts-ignore
   const { program, Option, Argument } = await import('commander');
-  const promptsModule = await import('prompts');
-  const prompts = (
-    'default' in promptsModule && typeof promptsModule.default === 'function'
-      ? promptsModule.default
-      : promptsModule
-  ) as typeof import('prompts');
+  const clack = await import('@clack/prompts');
+
+  /** Await a clack prompt; Ctrl+C / Esc resolves to a cancel symbol, which exits like before. */
+  async function ask<T>(prompt: Promise<T>): Promise<Exclude<T, symbol>> {
+    const value = await prompt;
+
+    if (clack.isCancel(value)) {
+      onCancel();
+    }
+
+    return value as Exclude<T, symbol>;
+  }
   const {
     readdirSync,
     existsSync,
@@ -264,22 +270,13 @@ const aiAddonsUtil = require('./ai-addons') as typeof import('./ai-addons');
           );
 
           if (updateAddons.length === 0 && process.stdin.isTTY) {
-            updateAddons =
-              (
-                (await prompts(
-                  {
-                    name: 'value',
-                    type: 'multiselect',
-                    message: 'Select AI assistant files to update:',
-                    choices: aiAddons.map((name) => ({
-                      title: name,
-                      value: name,
-                    })),
-                    hint: '- Space to select. Enter to confirm',
-                  },
-                  { onCancel },
-                )) as { value?: string[] }
-              ).value ?? [];
+            updateAddons = await ask(
+              clack.multiselect({
+                message: 'Select AI assistant files to update:',
+                options: aiAddons.map((name) => ({ value: name, label: name })),
+                required: false,
+              }),
+            );
           }
         }
 
@@ -306,75 +303,52 @@ const aiAddonsUtil = require('./ai-addons') as typeof import('./ai-addons');
 
       const template =
         opts.template ||
-        (
-          await prompts(
-            {
-              name: 'value',
-              type: 'select',
-              message: `template:`,
-              choices: templates.map((value) => {
-                return { value, title: value };
-              }),
-            },
-            { onCancel },
-          )
-        ).value;
+        (await ask(
+          clack.select({
+            message: 'template:',
+            options: templates.map((value) => ({ value, label: value })),
+          }),
+        ));
 
       const packageName =
         opts.name ||
-        ((
-          await prompts(
-            {
-              name: 'value',
-              type: 'text',
-              message: `package-name:`,
-              initial: path.basename(destinationFolder),
-            },
-            { onCancel },
-          )
-        ).value as string);
+        (await ask(
+          clack.text({
+            message: 'package-name:',
+            placeholder: path.basename(destinationFolder),
+            defaultValue: path.basename(destinationFolder),
+          }),
+        ));
 
       const description =
         opts.description ||
-        ((
-          await prompts(
-            {
-              name: 'value',
-              type: 'text',
-              message: `description:`,
-              initial: '',
-            },
-            { onCancel },
-          )
-        ).value as string);
+        (await ask(
+          clack.text({
+            message: 'description:',
+            placeholder: '',
+            defaultValue: '',
+          }),
+        ));
 
       const version =
         opts.version ||
-        ((
-          await prompts(
-            {
-              name: 'value',
-              type: 'text',
-              message: `version:`,
-              initial: '1.0.0',
-            },
-            { onCancel },
-          )
-        ).value as string);
+        (await ask(
+          clack.text({
+            message: 'version:',
+            placeholder: '1.0.0',
+            defaultValue: '1.0.0',
+          }),
+        ));
 
       const v7 =
         opts.v7 ||
-        ((
-          await prompts(
-            {
-              name: 'value',
-              type: 'confirm',
-              message: `Do you want to create a custom script for MI v7 (not compatible with v6)?`,
-              initial: false,
-            },
-            { onCancel },
-          )
-        ).value as boolean);
+        (await ask(
+          clack.confirm({
+            message:
+              'Do you want to create a custom script for MI v7 (not compatible with v6)?',
+            initialValue: false,
+          }),
+        ));
 
       let selectedAiAddons: string[];
 
@@ -383,22 +357,13 @@ const aiAddonsUtil = require('./ai-addons') as typeof import('./ai-addons');
       } else if (opts.ai !== undefined) {
         selectedAiAddons = [...new Set(opts.ai)];
       } else if (process.stdin.isTTY) {
-        selectedAiAddons =
-          (
-            (await prompts(
-              {
-                name: 'value',
-                type: 'multiselect',
-                message: 'Include AI assistant files:',
-                choices: aiAddons.map((name) => ({
-                  title: name,
-                  value: name,
-                })),
-                hint: '- Space to select. Enter to confirm',
-              },
-              { onCancel },
-            )) as { value?: string[] }
-          ).value ?? [];
+        selectedAiAddons = await ask(
+          clack.multiselect({
+            message: 'Include AI assistant files:',
+            options: aiAddons.map((name) => ({ value: name, label: name })),
+            required: false,
+          }),
+        );
       } else {
         selectedAiAddons = [];
       }

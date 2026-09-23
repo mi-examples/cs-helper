@@ -2,6 +2,7 @@
   "compilerOptions": {
     "declaration": true,
     "lib": ["esnext"],
+    "types": ["node"],
     "module": "commonjs",
     "moduleResolution": "bundler",
     "removeComments": true,
