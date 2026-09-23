@@ -24,7 +24,7 @@ npm run test:ui        # Playwright UI mode
 - Tests import compiled output from `dist/bin/*.js`, not the TypeScript sources — **run `npm run build` (or at least `npm run build:bin`) before `npm test`** after touching anything under `bin/`.
 - Run a single test file: `npx playwright test test/params-docs.spec.mjs`. Filter by title: `npx playwright test -g "password JSDoc"`.
 - `test/scaffold.spec.mjs` is an integration test that scaffolds a real project via `cs-helper-create` and installs `@metricinsights/cs-helper` from the local tarball — it requires `npm run postbuild` (which runs automatically after `npm run build` via the `postbuild` script, producing `metricinsights-cs-helper-latest.tgz` at repo root) to have been run first.
-- `postinstall`/`prepare` run `scripts/sync-npm-bundled-patches.js`, which patches vulnerable packages bundled *inside* npm's own `node_modules/npm` (brace-expansion, picomatch, ip-address, tar, sigstore, etc.) so `npm audit` stays clean; it's best-effort and silently no-ops if npm's internal layout changes.
+- There is no `postinstall`/`prepare` hook on purpose: this package is installed into consumer projects, so an install script would run on every consumer install. Don't patch npm's bundled dependencies in place — if `npm audit` flags one, fix it through normal dependency updates.
 
 ## Architecture
 
