@@ -4,6 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import * as acorn from 'acorn';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -364,4 +365,51 @@ test.describe('project scaffold', () => {
       fs.rmSync(tmpRoot, { recursive: true, force: true });
     }
   });
+  // v6 scripts run under PhantomJS (ES5). The whole bundle — the script's own code, cs-helper's
+  // polyfills/runtime and any node_modules — must parse as ES5, for JS entries as well as TS.
+  for (const template of ['custom-script-js', 'custom-script-ts']) {
+    test(`v6 build of ${template} is a single ES5 bundle`, async () => {
+      test.setTimeout(300_000);
+
+      const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'cs-helper-es5-'));
+      const packageName = `es5-${template.replace('custom-script-', '')}-${Date.now()}`;
+      const targetDir = path.join(tmpRoot, packageName);
+
+      try {
+        const scaffold = scaffoldProject({
+          targetDir,
+          template,
+          packageName,
+          description: 'es5 output test',
+          version: '1.0.0',
+          v7: false,
+        });
+
+        expect(scaffold.status, `scaffold stderr: ${scaffold.stderr}
+stdout: ${scaffold.stdout}`).toBe(0);
+
+        useLocalCsHelperPack(targetDir);
+
+        const install = runNpmSync(['install', '--no-audit', '--fund=false'], {
+          cwd: targetDir,
+          encoding: 'utf8',
+        });
+
+        expect(install.status, `npm install stderr: ${install.stderr}
+stdout: ${install.stdout}`).toBe(0);
+
+        const build = runNpmSync(['run', 'build'], { cwd: targetDir, encoding: 'utf8' });
+
+        expect(build.status, `build stderr: ${build.stderr}
+stdout: ${build.stdout}`).toBe(0);
+        expect(fs.readdirSync(path.join(targetDir, 'dist'))).toEqual([`${packageName}.js`]);
+
+        const bundle = fs.readFileSync(path.join(targetDir, 'dist', `${packageName}.js`), 'utf8');
+
+        expect(() => acorn.parse(bundle, { ecmaVersion: 5, sourceType: 'script' })).not.toThrow();
+      } finally {
+        fs.rmSync(tmpRoot, { recursive: true, force: true });
+      }
+    });
+  }
 });

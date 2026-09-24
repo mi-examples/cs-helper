@@ -1,3 +1,7 @@
+/// <reference types="jquery" preserve="true" />
+// jQuery is available in the Custom Script runtime. The reference above is emitted into
+// dist/index.d.ts, so any script importing cs-helper gets `$` / `JQuery` types in the IDE.
+
 import './polyfill';
 
 type ParametersType = Record<string, string | number | boolean>;

@@ -1,3 +1,17 @@
+# [0.11.0-beta.1](https://github.com/mi-examples/cs-helper/compare/v0.10.0...v0.11.0-beta.1) (2026-09-23)
+
+
+### Bug Fixes
+
+* **build:** transpile the script's own JS files for v6 ([78608fb](https://github.com/mi-examples/cs-helper/commit/78608fbc70cb61aa556b984a768bb7e452a6ab92))
+* **deps:** remove install-time npm patch hook and stale overrides ([7676345](https://github.com/mi-examples/cs-helper/commit/7676345c2e3030ae30c3b33bbb8854ac35a85bc2))
+
+
+### Features
+
+* **deps:** upgrade to Babel 8, commander 15 and chalk 6 ([46b73c2](https://github.com/mi-examples/cs-helper/commit/46b73c28c89ac83cc978cadeab9b262c9572d98e))
+* **types:** provide jQuery types to custom scripts in the IDE ([da91831](https://github.com/mi-examples/cs-helper/commit/da91831111c2dce7de8c295304cd21360c2b3536))
+
 # [0.10.0-beta.3](https://github.com/mi-examples/cs-helper/compare/v0.10.0-beta.2...v0.10.0-beta.3) (2026-09-07)
 
 

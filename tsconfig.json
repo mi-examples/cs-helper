@@ -7,7 +7,7 @@
     "removeComments": true,
     "rootDir": "./src",
     "skipLibCheck": true,
-    "sourceMap": true,
+    "sourceMap": false,
     "strict": true,
     "target": "es2015",
     "outDir": "./dist"

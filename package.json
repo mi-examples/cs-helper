@@ -1,12 +1,10 @@
 {
   "name": "@metricinsights/cs-helper",
-  "version": "0.10.0-beta.3",
+  "version": "0.11.0-beta.1",
   "description": "Helper for Custom Scripts",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "postinstall": "node scripts/sync-npm-bundled-patches.js",
-    "prepare": "node scripts/sync-npm-bundled-patches.js",
     "clean:dist": "node scripts/clean-dist.cjs",
     "build": "npm run clean:dist && npm run build:sources && npm run build:bin",
     "postbuild": "npm pack && node scripts/postbuild.mjs",
@@ -52,12 +50,14 @@
   },
   "files": [
     "dist/",
-    "scripts/sync-npm-bundled-patches.js",
     "templates",
     "ai-addons",
     "README.md",
     "CHANGELOG.md"
   ],
+  "engines": {
+    "node": "^22.18.0 || >=24.11.0"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mi-examples/cs-helper.git"
@@ -71,43 +71,28 @@
   ],
   "author": "Serhii Shpak",
   "license": "ISC",
-  "overrides": {
-    "node": ">=22.0.0",
-    "js-yaml": ">=5.2.2",
-    "fast-uri": ">=3.1.6 <4.0.0",
-    "serialize-javascript": ">=7.0.3",
-    "undici": ">=8.10.0",
-    "browserslist": ">=4.28.7"
-  },
   "devDependencies": {
     "@playwright/test": "^1.62.1",
-    "@semantic-release/changelog": "^6.0.3",
-    "@semantic-release/git": "^10.0.1",
-    "@types/jquery": "^3.5.34",
+    "@semantic-release/changelog": "^7.0.0",
+    "@semantic-release/git": "^11.0.1",
+    "@types/node": "^24.13.6",
     "@types/promise-polyfill": "^6.0.6",
-    "@types/prompts": "^2.4.9",
-    "brace-expansion": "^5.0.9",
-    "ip-address": "^10.4.0",
-    "pacote": "^21.5.1",
-    "picomatch": "4.0.5",
-    "postcss-selector-parser": "^7.1.6",
+    "acorn": "^8.18.0",
     "prettier": "^3.9.6",
-    "semantic-release": "^25.0.8",
-    "sigstore": "^4.1.1",
-    "tar": "^7.5.22"
+    "semantic-release": "^25.0.8"
   },
   "dependencies": {
-    "@babel/core": "^7.29.7",
-    "@babel/preset-env": "^7.29.2",
-    "@babel/preset-typescript": "^7.28.5",
+    "@babel/core": "^8.0.6",
+    "@babel/preset-env": "^8.0.6",
+    "@babel/preset-typescript": "^8.0.1",
+    "@clack/prompts": "^1.8.1",
+    "@types/jquery": "^3.5.34",
     "babel-loader": "^10.1.1",
-    "chalk": "^5.6.2",
-    "commander": "^14.0.3",
+    "chalk": "^6.0.0",
+    "commander": "^15.0.0",
     "isbinaryfile": "^6.0.0",
     "promise-polyfill": "8.3.0",
-    "prompts": "^2.4.2",
     "string-includes-polyfill": "^1.0.6",
-    "ts-loader": "^9.5.7",
     "typescript": "^6.0.3",
     "webpack": "^5.106.2"
   },

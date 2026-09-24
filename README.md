@@ -8,6 +8,8 @@ Metric Insights Custom Script helper
 npm i --save-dev @metricinsights/cs-helper
 ```
 
+Requires Node.js `^22.18.0` or `>=24.11.0` (the build runs Babel 8, webpack and the CLI locally).
+
 ## Usage
 
 ### CLI usage

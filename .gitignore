@@ -14,3 +14,8 @@ test-results
 .env.development
 .env.test
 .env.production
+
+# Secrets — never commit (SEC-8587)
+.env.*
+!.env.example
+*.pem
