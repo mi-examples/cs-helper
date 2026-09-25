@@ -11,8 +11,6 @@
     "build:sources": "tsc",
     "build:bin": "tsc --project tsconfig.bin.json && node scripts/chmod-bin.cjs",
     "test": "playwright test",
-    "release": "semantic-release",
-    "version": "npm version --commit-hooks false --git-tag-version false",
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui"
   },
@@ -73,13 +71,10 @@
   "license": "ISC",
   "devDependencies": {
     "@playwright/test": "^1.62.1",
-    "@semantic-release/changelog": "^7.0.0",
-    "@semantic-release/git": "^11.0.1",
     "@types/node": "^24.13.6",
     "@types/promise-polyfill": "^6.0.6",
     "acorn": "^8.18.0",
-    "prettier": "^3.9.6",
-    "semantic-release": "^25.0.8"
+    "prettier": "^3.9.6"
   },
   "dependencies": {
     "@babel/core": "^8.0.6",
