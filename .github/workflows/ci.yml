@@ -4,7 +4,7 @@
 
 name: CI
 
-# Shared pull-request CI: https://github.com/mi-examples/mi-examples-workflows/blob/main/docs/workflows.md#node-ciyml
+# Shared pull-request CI (hand edit to test drift sync): https://github.com/mi-examples/mi-examples-workflows/blob/main/docs/workflows.md#node-ciyml
 
 on:
   pull_request:
