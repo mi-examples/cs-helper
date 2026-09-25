@@ -522,19 +522,18 @@ This is my custom script description...
 
 ## Maintainers: publishing to npm
 
-Production releases publish from [`.github/workflows/release.yml`](.github/workflows/release.yml) when a `v*` tag is pushed. Authentication uses [npm trusted publishing](https://docs.npmjs.com/trusted-publishers/) (OIDC from GitHub Actions), not a long-lived `NPM_TOKEN`.
+Releases use the shared workflows from [mi-examples-workflows](https://github.com/mi-examples/mi-examples-workflows) ([release flow](https://github.com/mi-examples/mi-examples-workflows/blob/main/docs/workflows.md#release-workflows)). The caller is [`.github/workflows/release.yml`](.github/workflows/release.yml).
 
-### One-time setup on npmjs.com
-
-1. Open **@metricinsights/cs-helper** → **Settings** → **Trusted Publisher**.
-2. Choose **GitHub Actions** and configure:
-   - **Organization or user**: `mi-examples`
-   - **Repository**: `cs-helper`
-   - **Workflow filename**: `release.yml` (exact name, including `.yml`)
-3. After the first successful OIDC publish, consider **Publishing access** → **Require two-factor authentication and disallow tokens**, then revoke the old automation token from npm account settings.
-
-### Requirements
-
-- GitHub-hosted runners (self-hosted runners are not supported for trusted publishing).
-- Node.js **24** in the release workflow (npm ≥ 11.5.1 for OIDC).
-- `repository.url` in `package.json` must match `https://github.com/mi-examples/cs-helper`.
+- **Betas.** Every push to `develop` with releasable commits publishes `X.Y.Z-beta.N` to npm under the `beta` dist-tag, with a GitHub prerelease. Install one with `npm install @metricinsights/cs-helper@beta`.
+- **Production releases.**
+  1. Run **Actions → Release → Run workflow**. It opens a release pull request `release/vX.Y.Z → main` with the version bump and the new `CHANGELOG.md` entry.
+  2. Review and edit the entry in the pull request, then merge it.
+  3. Merging publishes to npm under `latest` and creates the tag and the GitHub release. It also opens the back-merge pull request into `develop`.
+- **Versions** come from [Conventional Commits](https://www.conventionalcommits.org/):
+  - `feat` → minor;
+  - `fix`, `perf` and `revert` → patch;
+  - `!` or a `BREAKING CHANGE:` footer → major;
+  - other types don't release.
+- **Publishing** uses npm Trusted Publishing (OIDC) from `release.yml` in the `npm-publish` environment. No npm token is needed or stored.
+  - Don't rename `release.yml`: the trusted publisher is registered for that filename.
+  - Setup and troubleshooting are in [npm-publishing.md](https://github.com/mi-examples/mi-examples-workflows/blob/main/docs/npm-publishing.md).

@@ -63,6 +63,6 @@ Each ai-addon file embeds a hidden `cs-helper-addon-version: %PLUGIN_VERSION%` m
 
 ## Release process
 
-- Two release channels via semantic-release (`.releaserc.json`, Angular commit preset): `main` (stable) and `develop` (`-beta.N` prerelease, `beta` channel). Workflows: `.github/workflows/release.yml` (main) and `release-beta.yml` (develop).
-- Publishing to npm uses **npm trusted publishing** (OIDC from GitHub Actions on a `v*` tag), not a long-lived token — see `README.md` "Maintainers: publishing to npm" if changing the release workflow.
-- Commit messages **must** follow the Angular/semantic-release format (`<type>(<scope>): <subject>`, types listed in `.releaserc.json`'s commit-analyzer config) — this directly drives version bumps and changelog generation, so it's not just a style preference.
+- **Channels.** Releases use the shared mi-examples-workflows release flow, with no semantic-release. A push to `develop` publishes `X.Y.Z-beta.N` under `beta`. Production releases go through the release pull request opened by **Actions → Release → Run workflow**; merging it publishes `latest`. Everything is called from `.github/workflows/release.yml`.
+- **Publishing** uses **npm trusted publishing** (OIDC) from `release.yml` in the `npm-publish` environment, never a token. Don't rename `release.yml`; see `README.md` "Maintainers: publishing to npm".
+- **Commit messages** must follow Conventional Commits (`<type>(<scope>): <subject>`). They directly drive version bumps: `feat` → minor; `fix`, `perf` and `revert` → patch; `!` or `BREAKING CHANGE:` → major. So it's not just a style preference.
