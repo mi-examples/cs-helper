@@ -20,3 +20,10 @@ jobs:
     uses: mi-examples/mi-examples-workflows/.github/workflows/node-ci.yml@36bd5b09ccf69bcaa68438cdd4f602a7628a6779 # v0.3.0
     with:
       dist-dir: dist
+
+  main-ahead:
+    name: Main ahead check
+    if: github.base_ref == 'develop'
+    permissions:
+      contents: read
+    uses: mi-examples/mi-examples-workflows/.github/workflows/main-ahead-check.yml@c2ed1da482ea07f91532c9cc70969fb9f97d375c # pp-4388
