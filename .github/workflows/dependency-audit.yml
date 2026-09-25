@@ -16,4 +16,4 @@ jobs:
     name: Dependency audit
     permissions:
       contents: read
-    uses: mi-examples/mi-examples-workflows/.github/workflows/dependency-audit.yml@36bd5b09ccf69bcaa68438cdd4f602a7628a6779 # v0.3.0
+    uses: mi-examples/mi-examples-workflows/.github/workflows/dependency-audit.yml@cf845c043bfdebca3b0db0df24cb8e0a6aa71dc6 # v0.5.0
