@@ -1,3 +1,7 @@
+# Managed by mi-examples-workflows. Do not edit by hand: change
+# .github/mi-examples-workflows.json and re-run `npx github:mi-examples/mi-examples-workflows`,
+# or merge the sync pull request.
+
 name: Dependency audit
 
 # Weekly npm audit of the default branch, to catch advisories published after
@@ -16,4 +20,4 @@ jobs:
     name: Dependency audit
     permissions:
       contents: read
-    uses: mi-examples/mi-examples-workflows/.github/workflows/dependency-audit.yml@cf845c043bfdebca3b0db0df24cb8e0a6aa71dc6 # v0.5.0
+    uses: mi-examples/mi-examples-workflows/.github/workflows/dependency-audit.yml@e9dbb3ff76c930e744437d1c52e2654f864c404f # v0.6.0
