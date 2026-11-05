@@ -18,7 +18,7 @@ Scaffolded with `cs-helper`. Build: `npm run build` → `dist/`. The build scrip
 ### v7 (`--v7` build)
 
 - **Puppeteer** / modern Chromium in MI.
-- Babel **`chrome: 97`** + **core-js** (`useBuiltIns: "entry"`), webpack **`es2023`**. Modern JS is generally fine; align with current Chromium behavior.
+- Babel **`chrome: 97`** (syntax only, no core-js polyfills), webpack **`es2023`**. Modern JS is generally fine; align with current Chromium behavior.
 
 ## Entity-page request context (`window.req`, `window.user`)
 

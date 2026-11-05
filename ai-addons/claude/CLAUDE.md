@@ -22,7 +22,7 @@ The **`npm run build`** script passes `%V7%` (either nothing or ` --v7` for webp
 ### Metric Insights v7 (`--v7` / v7-only build)
 
 - **Runtime:** **Puppeteer** with a current Chromium stack (MI tracks updates).
-- **Language level:** Babel **`targets: { chrome: "97" }`** with **`useBuiltIns: "entry"`** and **core-js 3.x**, plus webpack **`target: ["web", "es2023"]`**. You can use modern JavaScript much more freely than on v6; still prefer patterns that match a recent Chromium.
+- **Language level:** Babel **`targets: { chrome: "97" }`** (syntax transforms only — **no core-js polyfills** are injected), plus webpack **`target: ["web", "es2023"]`**. You can use modern JavaScript much more freely than on v6; still prefer patterns that match a recent Chromium.
 
 ## Entity-page request context (`window.req`, `window.user`)
 
