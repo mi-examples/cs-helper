@@ -39,7 +39,7 @@ npm run test:ui        # Playwright UI mode
 
 Bundles a consumer's custom-script entry file with webpack, resolving webpack/babel from **cs-helper's own** `node_modules` (not the consumer's) via `require.resolve(..., { paths: [packageRoot] })`. Key behaviors:
 
-- **v6 vs v7 target** (`--v7` flag): controls the Babel `preset-env` target (`ie 11` vs `chrome 97` + core-js), webpack `target` (`es5` vs `es2023`), and rewrites the `polyfill/index-TARGET_EXTENSION` import to `-v6` or `-v7` via `NormalModuleReplacementPlugin`. v6 runs under PhantomJS in Metric Insights; v7 under Puppeteer/Chromium.
+- **v6 vs v7 target** (`--v7` flag): controls the Babel `preset-env` target (`ie 11` vs `chrome 97`, no core-js polyfills), webpack `target` (`es5` vs `es2023`), and rewrites the `polyfill/index-TARGET_EXTENSION` import to `-v6` or `-v7` via `NormalModuleReplacementPlugin`. v6 runs under PhantomJS in Metric Insights; v7 under Puppeteer/Chromium.
 - **Banner metadata**: a `webpack.BannerPlugin` injects package info, a source hash (SHA-256 of the entry file + all relative imports it resolves, via `bin/params-docs.ts`'s `getSourceFilesFromEntry`), a params table/description, and a `Params Base64` block (from `bin/params-base64.ts`), plus the consumer's README content.
 - **Checksum**: after compile, the banner's `Checksum:` placeholder (`0000000000000000`) is replaced with a SHA-256 hash of the final file content (tabs→2 spaces, CRLF→LF normalized first). See `README.md`'s "Verifying the Checksum" section for the exact algorithm — replicate it precisely if you touch this logic, since consumers verify against it externally.
 

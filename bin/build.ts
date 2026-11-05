@@ -180,8 +180,8 @@ function parsePackageRepository(
 
   const presetEnv = V7
     ? {
-        useBuiltIns: 'entry',
-        corejs: '3.8',
+        // Babel 8 removed `useBuiltIns`/`corejs` from preset-env. They were a no-op here anyway:
+        // nothing imports core-js and it is not a dependency, so no polyfills are injected.
         targets: {
           chrome: 97, // January 2022 - supports async/await
         },
@@ -296,7 +296,11 @@ Code sources:
             options: {
               presets: [
                 ['@babel/preset-env', presetEnv],
-                '@babel/preset-typescript',
+                // Babel 8 defaults `onlyRemoveTypeImports` to true, which keeps imports of
+                // interfaces/types that lack `import type` (webpack then warns "export not
+                // found", or fails when the type comes from a types-only package). Keep the
+                // Babel 7 behavior: drop imports that are only used as types.
+                ['@babel/preset-typescript', { onlyRemoveTypeImports: false }],
               ],
             },
           },
