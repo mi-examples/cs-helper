@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.11.1](https://github.com/mi-examples/cs-helper/compare/v0.11.0...v0.11.1) (2026-11-05)
+
+### Bug fixes
+
+- `--v7` builds work again with Babel 8 instead of failing with "The 'useBuiltIns' option has been removed"; no `core-js` polyfills are injected, as before.
+- TypeScript imports that are only used as types are removed again even without `import type`, so webpack no longer warns "export ... was not found" or fails when a type comes from a types-only package.
+
+### Other changes
+
+- The bundled AI add-ons now say that v7 builds use syntax transforms only and no `core-js` polyfills.
+
 ## [0.11.0](https://github.com/mi-examples/cs-helper/compare/v0.10.0...v0.11.0) (2026-09-24)
 
 ### Features
